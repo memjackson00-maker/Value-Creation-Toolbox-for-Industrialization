@@ -1,0 +1,771 @@
+<title>Portfolio Industrialization Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same technical-drawing language as VCF-IND-01. Portfolio view = title block, KPI strip, phase board (5 columns, 4 gates), register table, activity feed. Company view = profile, phase track, readiness radar, gate checklists, KPI log, actions, activity. */
+:root{
+  --bg:#f3f4f2; --panel:#ffffff; --ink:#1b2126; --muted:#5b6670; --line:#d3d8d6; --line-strong:#9aa5a8;
+  --accent:#0f6f74; --accent-soft:#dcecec; --signal:#c7751a; --signal-soft:#f6e6d2;
+  --good:#2f7d4a; --warn:#b3661a; --bad:#b23a3a; --on-accent:#ffffff;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111618; --panel:#182023; --ink:#e3e8e7; --muted:#9aa6aa; --line:#2b3639; --line-strong:#4b585c;
+  --accent:#4fb3b5; --accent-soft:#16383a; --signal:#e39a4c; --signal-soft:#3a2a18;
+  --good:#6cc28a; --warn:#e3a45c; --bad:#e07a7a; --on-accent:#0d1416; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111618; --panel:#182023; --ink:#e3e8e7; --muted:#9aa6aa; --line:#2b3639; --line-strong:#4b585c;
+  --accent:#4fb3b5; --accent-soft:#16383a; --signal:#e39a4c; --signal-soft:#3a2a18;
+  --good:#6cc28a; --warn:#e3a45c; --bad:#e07a7a; --on-accent:#0d1416; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:24px 64px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,5vw,3rem)}
+h2{font-size:1.6rem}
+h3{font-size:1.15rem;font-weight:600}
+p{margin:0}
+.label{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.lede{max-width:68ch;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-size:.82rem;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:16px;min-width:0}
+.sechead{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.sechead>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+
+.head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end}
+.head .intro{display:flex;flex-direction:column;gap:10px;min-width:0}
+.tblock{border:1.5px solid var(--ink);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));font-family:var(--f-mono);font-size:.74rem;min-width:300px;background:var(--panel)}
+.tblock div{padding:6px 10px;border-right:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}
+.tblock div:nth-child(2n){border-right:0}
+.tblock div:nth-last-child(-n+2){border-bottom:0}
+.tblock span{display:block;font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+@media (max-width:760px){.head{grid-template-columns:1fr}.tblock{min-width:0}}
+
+.banner{border:1px solid var(--line-strong);background:var(--panel);padding:10px 14px;font-size:.9rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner.warn{border-color:var(--warn);background:var(--signal-soft)}
+.live{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--line-strong);display:block}
+.live.on i{background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent)}
+
+/* buttons, inputs */
+.btn{border:1px solid var(--line-strong);background:var(--panel);padding:6px 12px;border-radius:3px;cursor:pointer;font-size:.88rem;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.btn.primary:hover{filter:brightness(1.08);color:var(--on-accent)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.small{padding:3px 9px;font-size:.8rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.link{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font-size:.86rem;text-decoration:underline;text-underline-offset:2px}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{background:var(--panel);border:1px solid var(--line-strong);border-radius:3px;padding:6px 8px;min-width:0;width:100%}
+textarea{resize:vertical;min-height:64px}
+input:disabled,select:disabled,textarea:disabled{opacity:.7}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1 1 200px;min-width:0}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{border:1px solid var(--line-strong);background:var(--panel);padding:4px 11px;border-radius:999px;font-size:.84rem;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tag{display:inline-block;font-size:.72rem;padding:1px 8px;border-radius:3px;background:var(--accent-soft);color:var(--accent);font-weight:600;white-space:nowrap}
+.tag.s{background:var(--signal-soft);color:var(--signal)}
+
+/* status pills */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-on{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.st-risk{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.st-off{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.v-go{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.v-cond{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.v-stop{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.verdict{padding:3px 10px;border-radius:3px;font-weight:600;font-size:.84rem;width:fit-content;white-space:nowrap}
+
+/* KPI strip */
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line-strong);background:var(--panel)}
+.strip>div{padding:14px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;min-width:0}
+.strip>div:last-child{border-right:0}
+.strip b{font-family:var(--f-display);font-size:2.1rem;line-height:1;font-variant-numeric:tabular-nums}
+.strip small{color:var(--muted);font-size:.8rem}
+.rag{display:flex;height:8px;width:100%;background:var(--line);overflow:hidden;border-radius:2px}
+.rag i{display:block;height:100%}
+@media (max-width:760px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}.strip>div:nth-child(2){border-right:0}.strip>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+
+/* board */
+.boardwrap{overflow-x:auto;border:1px solid var(--line-strong);background:var(--panel)}
+.board{display:grid;grid-template-columns:repeat(5,minmax(200px,1fr));min-width:1000px}
+.col{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;position:relative}
+.col:last-child{border-right:0}
+.colhead{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:2px;background:var(--bg);position:relative}
+.colhead .nm{font-family:var(--f-display);font-weight:700;font-size:1.2rem;display:flex;justify-content:space-between;align-items:baseline;padding-right:16px}
+.colhead .nm span{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);font-weight:500}
+.gate{position:absolute;right:-11px;top:50%;z-index:2;font-family:var(--f-mono);font-size:.6rem;background:var(--signal);color:#fff;width:22px;height:22px;display:grid;place-items:center;transform:translateY(-50%) rotate(45deg)}
+.gate b{transform:rotate(-45deg);font-weight:500}
+.cards{display:flex;flex-direction:column;gap:8px;padding:10px;min-height:120px}
+.card{appearance:none;text-align:left;border:1px solid var(--line);border-left:4px solid var(--line-strong);background:var(--panel);padding:10px 10px 10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:6px;width:100%}
+.card:hover{border-top-color:var(--accent);border-right-color:var(--accent);border-bottom-color:var(--accent)}
+.card.st-on-b{border-left-color:var(--good)}
+.card.st-risk-b{border-left-color:var(--warn)}
+.card.st-off-b{border-left-color:var(--bad)}
+.card .cn{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.15}
+.card .meta{display:flex;justify-content:space-between;gap:6px;font-family:var(--f-mono);font-size:.7rem;color:var(--muted);flex-wrap:wrap}
+.meter{height:5px;background:var(--line);position:relative;border-radius:2px;overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+.meter.gap i{background:var(--warn)}
+.colempty{font-size:.8rem;color:var(--muted);padding:6px 2px}
+
+/* tables */
+.tablewrap{overflow-x:auto;border:1px solid var(--line-strong);background:var(--panel)}
+table{border-collapse:collapse;width:100%}
+.reg{min-width:980px}
+.kpit{min-width:860px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+thead th{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--bg);white-space:nowrap}
+thead th button{all:unset;cursor:pointer}
+thead th button:hover{color:var(--ink)}
+tbody tr:last-child td{border-bottom:0}
+tr.pick{cursor:pointer}
+tr.pick:hover td{background:var(--accent-soft)}
+td.nm{font-family:var(--f-display);font-weight:700;font-size:1.05rem;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.reg td.mono{white-space:nowrap}
+.bad{color:var(--bad)} .good{color:var(--good)} .warn{color:var(--warn)}
+
+/* feed */
+.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);background:var(--panel)}
+.feed li{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:.9rem}
+.feed li:last-child{border-bottom:0}
+.feed time{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);padding-top:2px}
+.feed .who{color:var(--muted);font-size:.8rem}
+.feed button.co{all:unset;cursor:pointer;font-weight:600;color:var(--accent)}
+@media (max-width:520px){.feed li{grid-template-columns:1fr;gap:2px}}
+
+/* empty */
+.empty{border:1.5px dashed var(--line-strong);background:var(--panel);padding:28px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+
+/* panels & forms */
+.panel{background:var(--panel);border:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.form .wide{grid-column:1/-1}
+.form .half{grid-column:span 2}
+@media (max-width:760px){.form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){.form{grid-template-columns:1fr}.form .half{grid-column:auto}}
+
+/* company header */
+.cohead{display:flex;flex-direction:column;gap:10px}
+.cohead .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.cohead h1{font-size:clamp(1.9rem,4.5vw,2.7rem)}
+.signals{display:flex;gap:8px;flex-wrap:wrap}
+
+/* phase track */
+.track{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line-strong);background:var(--panel)}
+.stage{appearance:none;border:0;background:transparent;text-align:left;padding:12px 14px 14px;cursor:pointer;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--line);position:relative;min-width:0}
+.stage:last-child{border-right:0}
+.stage .num{font-family:var(--f-mono);font-size:.7rem;color:var(--muted)}
+.stage .nm{font-family:var(--f-display);font-weight:700;font-size:1.2rem}
+.stage .tg{font-family:var(--f-mono);font-size:.68rem;color:var(--muted)}
+.stage:hover:not(:disabled){background:var(--accent-soft)}
+.stage.done{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.stage[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.stage[aria-pressed="true"] .num,.stage[aria-pressed="true"] .tg{color:var(--on-accent);opacity:.85}
+.stage:disabled{cursor:default}
+@media (max-width:760px){.track{grid-template-columns:1fr}.stage{border-right:0;border-bottom:1px solid var(--line)}.stage:last-child{border-bottom:0}.stage .gate,.colhead .gate{right:auto;left:14px;top:auto;bottom:-11px;transform:rotate(45deg)}}
+
+/* readiness */
+.ready{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.ready{grid-template-columns:1fr}}
+.sliders{display:flex;flex-direction:column;gap:12px}
+.sl{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px;gap:10px;align-items:center}
+.sl label{font-size:.9rem;font-weight:500}
+.sl label small{display:block;font-weight:400;color:var(--muted);font-size:.76rem}
+.sl input[type=range]{width:100%;accent-color:var(--accent)}
+.sl output{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;font-size:.85rem}
+.sl output.gap{color:var(--bad)}
+.score{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end}
+.score div{display:flex;flex-direction:column}
+.score b{font-family:var(--f-display);font-size:2rem;font-variant-numeric:tabular-nums;line-height:1}
+.gaps{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.gaps li{border-left:3px solid var(--bad);padding:4px 10px;font-size:.88rem;background:var(--bg)}
+.gaps li span{color:var(--muted)}
+svg text{font-family:var(--f-mono)}
+
+/* gates */
+.gates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.gates{grid-template-columns:1fr}}
+.gatecard{background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.gatecard.next{border:1.5px solid var(--signal)}
+.gatecard.passed{opacity:.8}
+.gatecard header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.gatecard header .g{font-family:var(--f-mono);font-size:.74rem;background:var(--signal);color:#fff;padding:2px 7px}
+.gatecard .prog{font-family:var(--f-mono);font-size:.76rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.gatecard ul{list-style:none;margin:0;padding:10px 16px 6px;display:flex;flex-direction:column;gap:6px}
+.gatecard li{display:flex;gap:6px;align-items:flex-start}
+.gatecard label{display:flex;gap:9px;align-items:flex-start;font-size:.88rem;cursor:pointer;flex:1;min-width:0}
+.gatecard input[type=checkbox]{accent-color:var(--accent);margin-top:4px;flex:none}
+.gatecard .kind{font-family:var(--f-mono);font-size:.6rem;color:var(--muted);letter-spacing:.06em;margin-left:auto;padding-top:3px;flex:none;text-align:right}
+.gatecard li.sx .kind{color:var(--signal)}
+.gatecard li.cu .kind{color:var(--accent)}
+.gatecard .x{all:unset;cursor:pointer;color:var(--muted);font-size:.9rem;padding:0 4px;line-height:1.6}
+.gatecard .x:hover{color:var(--bad)}
+.gatecard form{display:flex;gap:6px;padding:6px 16px 14px;flex-wrap:wrap}
+.gatecard form input{flex:1 1 160px;width:auto}
+.gatecard form select{width:auto}
+
+/* actions */
+.acts{list-style:none;margin:0;padding:0;border:1px solid var(--line);background:var(--panel)}
+.acts li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.acts li:last-child{border-bottom:0}
+.acts li.done .t{text-decoration:line-through;color:var(--muted)}
+.acts .t{font-size:.92rem}
+.acts .sub{font-family:var(--f-mono);font-size:.7rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.acts .sub .od{color:var(--bad);font-weight:500}
+.acts input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+
+.spark{display:block;width:100%;max-width:140px;height:30px}
+.kpit td input[type=number]{width:90px}
+.kpit .logrow{display:flex;gap:6px;align-items:center}
+.kpit .logrow input[type=date]{width:140px}
+
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.88rem}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:.88rem;z-index:20;max-width:calc(100% - 32px)}
+footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;max-width:85ch;display:flex;flex-direction:column;gap:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap" id="app">
+  <header class="head">
+    <div class="intro">
+      <span class="label">Corporate venture · portfolio tracking · built on VCF-IND-01</span>
+      <h1>Portfolio Industrialization Cockpit</h1>
+      <p class="lede">Where each portfolio company stands on the pilot-to-series path: its phase, readiness against the next gate, gate criteria met, KPIs against target and open actions. Everyone with edit access updates the same live record.</p>
+    </div>
+    <div class="tblock" aria-label="Document details">
+      <div><span>Doc no.</span>VCF-IND-02</div>
+      <div><span>Framework</span>VCF-IND-01 rev C</div>
+      <div><span>Companies</span><b id="tbCount">—</b></div>
+      <div><span>Last change</span><b id="tbLast">—</b></div>
+      <div><span>Data</span><span class="live" id="live" style="display:inline-flex;font-size:.74rem;letter-spacing:0;text-transform:none;color:inherit"><i></i><b id="liveTxt">Connecting…</b></span></div>
+      <div><span>Access</span><b id="tbAccess">—</b></div>
+    </div>
+  </header>
+
+  <div id="banner" hidden></div>
+  <main id="view"></main>
+
+  <footer>
+    <p>Phases, gates, readiness targets, sector must-haves and tool references follow the Pilot-to-Series Toolbox (VCF-IND-01). Readiness is scored 1 (not started) to 5 (proven at scale) against the minimum for the company's next gate.</p>
+    <p>Changes save as you make them and appear for everyone with the page open. Each company keeps its own activity log of phase moves, gate ticks, KPI readings and notes.</p>
+  </footer>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+// Framework data from VCF-IND-01 (Pilot-to-Series Toolbox rev C)
+const PHASES=[
+ {n:"Prove",tg:"PoC · TRL 4–6",goal:"Show the technology works in the OEM context and is worth paying for.",dur:"3–6 months",investor:"Sponsor: business owner, test assets, data access",out:["PoC charter with success criteria","Quantified business value","IP and data-rights agreement"],q:"Does it solve a problem a customer will pay for?",gate:"G1"},
+ {n:"Pilot",tg:"Real operation · TRL 7",goal:"Prove performance and value in real operation with a small number of customers, sites or vehicles.",dur:"6–12 months",investor:"Door-opener: pilot customers, plants, hubs, dealer network, labs",out:["Pilot KPIs vs baseline","Target cost or unit economics","Industrialization plan"],q:"Does it hold up in real operation at a cost we can accept?",gate:"G2"},
+ {n:"Industrialize",tg:"Repeatable · TRL 8",goal:"Freeze the product and process, build partners, compliance and capacity for scale.",dur:"12–24 months",investor:"Industrial partner: purchasing, plant and IT experts, quality and compliance",out:["Released product and process","Key partner and supplier contracts","Capacity or rollout model"],q:"Can they deliver the same result every time, at volume?",gate:"G3"},
+ {n:"Launch",tg:"Start of scale · TRL 9",goal:"Go live at series or rollout pace and stabilize quality, uptime and service.",dur:"6–12 months",investor:"Customer and coach: launch reviews, field-quality loop, service process",out:["Target pace reached","Field quality or uptime tracked","Service and support live"],q:"Is it stable enough to add volume?",gate:"G4"},
+ {n:"Scale",tg:"Multi-market",goal:"Expand across brands, regions and customers; drive cost down.",dur:"Ongoing",investor:"Platform: group-wide rollout, sales and service network, exit or follow-on options",out:["Multi-brand or multi-market rollout plan","Cost-down roadmap","Next revenue pool"],q:"What is the next revenue pool and who else buys it?",gate:null}
+];
+const LEVERS=[
+ {k:"com",n:"Commercial access",bring:"First-customer status, pilot fleets, plants and hubs, dealer and fleet-customer introductions, group brands",driver:"Revenue · multiple",i:[3,3,2,2,3]},
+ {k:"eng",n:"Engineering & validation",bring:"Test vehicles and tracks, labs, duty-cycle and plant data, homologation and IT integration know-how",driver:"Time to market",i:[3,3,3,1,1]},
+ {k:"ind",n:"Industrial & supply chain",bring:"Purchasing leverage, supplier panel, plant engineers, DfM reviews, rollout partners",driver:"Margin at scale",i:[1,2,3,3,2]},
+ {k:"qua",n:"Quality & compliance",bring:"Audits, certification and homologation support, cybersecurity and data compliance, export-control checks",driver:"Risk · warranty cost",i:[1,2,3,3,2]},
+ {k:"cap",n:"Capital & funding",bring:"Follow-on equity, syndicate, grant access (e.g. EIC, IPCEI, national programmes), customer prepayments",driver:"Runway · dilution",i:[2,3,3,2,2]},
+ {k:"gov",n:"Governance & talent",bring:"Board seat or observer, KPI cockpit, operator hires, trainee and expert secondments",driver:"Execution risk",i:[2,2,3,2,2]},
+ {k:"aft",n:"After-sales & service",bring:"Service network, spare-parts logistics, diagnostics, returns and retrofit channel",driver:"Recurring revenue",i:[1,1,2,2,3]}
+];
+const SECTORS=[{"k": "energy", "n": "Energy & infrastructure", "short": "Energy & infra", "arch": "Energy hardware & network", "means": "Taking battery, charging and energy-management technology from pilot to certified product and repeatable rollout: automotive-grade supply for on-vehicle parts, standard site design and grid connection for infrastructure.", "mat": ["TRL 4–6 · test bench", "TRL 7 · first vehicles or sites", "MRL 7–8 · certified product", "MRL 9 · rollout", "Energy platform"], "ph": ["Cells, chargers or energy software tested in the lab and with eTrucks on the test bench; safety and interoperability baseline.", "B-samples on test trucks, or first depot and corridor sites with fleet customers; durability, uptime and utilization measured.", "Series process or standard site design: UN 38.3 / UN R100 or charger certification, installation partners, grid-connection route.", "Start of production or pipeline rollout; yield, uptime and cost per kWh or per kW under control.", "Energy services and second life: smart charging, grid flexibility, offers bundled with truck sales."], "regs": ["UN 38.3 and UN ECE R100 (battery transport and safety)", "EU Battery Regulation 2023/1542 (carbon footprint, due diligence, battery passport)", "AFIR Regulation (EU) 2023/1804", "OCPP, ISO 15118 and MCS (Megawatt Charging System) for heavy trucks", "IEC 61851 · CE · Eichrecht calibration law (Germany) for billing"], "kpis": ["€/kWh (pack) or € per kW installed", "Production yield or charger uptime %", "kWh per charger per day", "Months from site selection to energization", "kg CO₂e per kWh"], "risks": ["Yield ramp or grid-connection lead times slower than plan", "Thermal safety or interoperability failures with trucks", "Low early utilization"], "gates": ["Safety and interoperability baseline confirmed on the test bench", "Durability or uptime targets met on first vehicles or sites", "Product certified (UN R100 or charger conformity); installation partners standardized", "Rollout pipeline and battery-passport data cover the next 12 months"], "dims": {"tech": ["Technology & safety", "Cell or charger performance, safety"], "mfg": ["Production & site rollout", "Yield, install time, capacity"], "sup": ["Materials, grid & installers", "Raw materials, grid capacity, partners"], "qua": ["Certification & compliance", "R100, charger conformity, Battery Regulation"]}, "lv": [3, 3, 3, 3, 3, 2, 3], "ex": {"p": 1, "v": [4, 3, 2, 1, 2, 3, 2, 3], "n": "depot-charging and storage startup in pilot phase"}}, {"k": "dt", "n": "Deep tech", "short": "Deep tech", "arch": "Lab-to-fab transfer", "means": "Transferring a lab-proven technology (materials, sensors, semiconductors, hydrogen components) to a scalable, repeatable process, often through a contract manufacturer or foundry.", "mat": ["TRL 3–5", "TRL 6 · MRL 4–5", "MRL 6–8", "MRL 9", "MRL 10"], "ph": ["Lab proof on a representative use case; technical risk register and IP position.", "Prototype in a relevant environment on a truck or in a plant; first cost-at-scale estimate.", "Tech transfer to a scale-up partner (CDMO, foundry, tier-1); process freeze and yield learning.", "Supply at volume from a qualified process; second source planned.", "New applications and customers beyond trucks; licensing options."], "regs": ["Patents and freedom to operate", "EU Dual-Use Regulation 2021/821 (export control)", "REACH and RoHS for materials", "IATF 16949 if supplied as an automotive part"], "kpis": ["Scale-up factor lab → line", "Yield and cost per unit vs incumbent", "Months to next TRL", "Patent family coverage"], "risks": ["The physics does not scale", "Single scale-up partner", "Long runway burns cash"], "gates": ["Freedom-to-operate check shows no blocking patents", "Scale-up partner shortlisted and cost at scale estimated", "Capacity reserved at the scale-up partner", "Second source or licensing route defined"], "dims": {"tech": ["Technology & science risk", "TRL, open physics risks"], "mfg": ["Scale-up process", "Process transfer, yield"], "sup": ["Scale-up partners", "Foundry, CDMO, tier-1 capacity"]}, "lv": [2, 3, 3, 2, 3, 3, 1], "ex": {"p": 0, "v": [2, 1, 1, 1, 1, 2, 3, 2], "n": "sensor-materials startup in prove phase"}}, {"k": "amc", "n": "Asset management & circularity", "short": "Assets & circularity", "arch": "Lifecycle & circular operations", "means": "Extending and recovering the value of trucks, batteries and components over their life: condition monitoring, lifetime extension, remanufacturing, remarketing, second life and recycling, run as standard processes at a margin.", "mat": ["Lab process · data proof", "Pilot batch or fleet", "Standard process", "Plant or network ramp", "Multi-stream"], "ph": ["Process or condition model proven on real cores, batteries or fleet data; recovery rate or prediction accuracy measured.", "Pilot with real returns or a customer fleet (workshops, dealers, leasing); grading, residual value and offtake tested.", "Standard grading, disassembly or refurbishment; permits; reverse logistics and data feeds from the service network.", "Ramp with secured feedstock and offtake; integration into used-truck, service and parts channels.", "More material streams, brands and asset types; recycled content supplied back into production."], "regs": ["EU Battery Regulation 2023/1542 (recycled content, recovery targets, producer responsibility)", "EU Waste Framework Directive and national waste permits", "ADR for transport of used batteries", "Proposed EU End-of-Life Vehicles Regulation", "GDPR and EU Data Act (vehicle and asset data)"], "kpis": ["Feedstock or core return rate", "Recovery rate %", "Cost per unit vs new part or virgin material", "Residual-value uplift per asset", "kg CO₂e saved per unit"], "risks": ["Feedstock volume and quality", "Permits take longer than planned", "Offtake and residual-value prices tied to markets"], "gates": ["Recovery rate or condition model proven on real feedstock or fleet data", "Feedstock volumes or fleet-data access from workshops and customers confirmed", "Waste, transport and data-use permissions granted", "Offtake and channel agreements cover planned output"], "dims": {"sup": ["Feedstock & asset data", "Returns, fleet data, quality"], "mfg": ["Processing & grading", "Refurbishment, testing, throughput"], "com": ["Offtake & channels", "Buyers, used-truck and parts channels"]}, "lv": [3, 1, 3, 2, 2, 2, 3], "ex": {"p": 1, "v": [3, 2, 2, 1, 2, 2, 2, 3], "n": "battery second-life startup in pilot phase"}}, {"k": "asc", "n": "Autonomous & supply chain", "short": "Autonomy & SCM", "arch": "Autonomy & operations", "means": "Moving from a supervised pilot on one route, yard or site to safety-approved, standardized operations that scale across a network at a positive margin per shipment or per site.", "mat": ["Simulation · closed site", "Supervised pilot", "Safety case · standard ops", "Network rollout", "Platform"], "ph": ["Use case proven in simulation, on a test track or in a closed yard; savings per shipment, per km or per site modelled on real data.", "Supervised pilot on selected routes, hubs or plants with real freight; safety driver or operator in the loop; KPIs against baseline.", "Safety case and approvals, standard operating procedures, TMS, WMS and ERP integrations, deployment playbook.", "Rollout across routes, hubs, plants and customers; driverless or unattended operation where approved.", "Network effects: new lanes and services, autonomy-ready trucks sold by the OEM, marketplace offers."], "regs": ["EU Regulation 2022/1426 (type approval of automated driving systems)", "German Autonomous Driving Act (level 4 in defined operating areas)", "EU Machinery Regulation 2023/1230 and ISO 3691-4 (yard and warehouse robots)", "UN R155 / R156 and ISO/SAE 21434 (cybersecurity, software updates)", "eFTI Regulation (EU) 2020/1056 · ISO 14083 emissions accounting"], "kpis": ["Cost per shipment or per km", "Interventions per 1,000 km or operating hours", "On-time delivery % and asset utilization", "Days to deploy a new route or site", "Gross margin per lane or site"], "risks": ["Safety approval takes longer than planned", "Every route or site becomes custom engineering", "Integration effort per customer"], "gates": ["Savings per shipment or site shown on real operating data", "Supervised pilot meets safety and KPI targets against baseline", "Safety case accepted and required approvals granted", "Deployment playbook proven on a second route or site"], "dims": {"dfm": ["Process standardization", "SOPs, playbook, configurable product"], "mfg": ["Deployment & operations", "Days to deploy, automation level"], "sup": ["Partners & network", "Carriers, hubs, sensor and compute supply"], "qua": ["Safety case & approvals", "Type approval, CE, cybersecurity"]}, "lv": [3, 3, 2, 3, 2, 2, 2], "ex": {"p": 1, "v": [4, 3, 2, 2, 2, 3, 3, 3], "n": "hub-to-hub autonomous freight pilot"}}, {"k": "ai", "n": "AI", "short": "AI", "arch": "Software & data", "means": "Turning a model that works in a PoC into a secure, monitored product that runs in production systems across plants, fleets or markets at a known cost per use.", "mat": ["Offline PoC", "Shadow mode / pilot users", "Production release", "Scaled deployment", "Platform"], "ph": ["Model validated on historical data with an agreed accuracy metric and business baseline.", "Shadow mode or pilot users on live data; integration path into IT and OT confirmed.", "Production release: MLOps, monitoring, security review, AI Act classification, SLA.", "Rollout to more plants, brands or markets; drift and cost per inference under control.", "New use cases on the same platform; offers to fleet customers and dealers."], "regs": ["EU AI Act (risk classification and obligations)", "GDPR (personal and vehicle data)", "TISAX for automotive information exchange", "UN R155 / R156 and ISO/SAE 21434 if on-vehicle", "ISO/IEC 42001 (AI management system)"], "kpis": ["Model performance in production", "Active users or adoption rate", "Cost per inference or transaction", "ARR and net revenue retention", "Weeks to deploy a new site"], "risks": ["No access to production data", "Stuck in pilot mode", "Model drift and liability"], "gates": ["Data access and data-rights agreement signed", "Business KPI improved in shadow or pilot mode", "Security review, TISAX and AI Act classification complete", "Monitoring, retraining and incident process live"], "dims": {"dfm": ["Product architecture", "Multi-tenant, configurable, maintainable"], "mfg": ["MLOps & deployment", "Release, monitoring, rollback"], "sup": ["Data & infrastructure", "Data access, hosting, compute"], "qua": ["Security & compliance", "TISAX, AI Act, GDPR"]}, "lv": [3, 2, 1, 3, 2, 2, 1], "ex": {"p": 1, "v": [4, 3, 2, 2, 1, 3, 3, 3], "n": "predictive-maintenance AI in pilot phase"}}];
+const ALL=SECTORS.map(s=>s.k);
+const CORE=[{"id": "T01", "n": "Use-case value map", "p": [1], "l": "com", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["com"], "why": "Quantify the benefit per vehicle, site, shipment or user, and the payback.", "out": "Value per unit, target customer segment", "eff": "3–5 days"}, {"id": "T02", "n": "PoC charter & success criteria", "p": [1], "l": "gov", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["tech"], "why": "Agree measurable pass/fail thresholds and decision owners before work starts.", "out": "Signed charter, G1 criteria", "eff": "1 week"}, {"id": "T03", "n": "100-day value creation plan", "p": [1, 2], "l": "gov", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["org"], "why": "Turn the investment thesis into owned actions and KPIs after closing.", "out": "Action plan with owners and dates", "eff": "2 weeks"}, {"id": "T04", "n": "TRL / MRL assessment", "p": [1, 2, 3], "l": "eng", "s": ["energy", "dt", "amc", "asc"], "d": ["tech", "mfg"], "why": "Score technology and manufacturing maturity against standard definitions.", "out": "Scored gap list per level", "eff": "2 days"}, {"id": "T05", "n": "Pilot design (fleet, plant or site)", "p": [2], "l": "eng", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["tech", "com"], "why": "Pick vehicles, sites or users, the baseline and data logging so pilot results are decision-grade.", "out": "Pilot plan, data spec, baseline", "eff": "1–2 weeks"}, {"id": "T06", "n": "Should-cost teardown", "p": [2, 3], "l": "ind", "s": ["energy", "dt", "amc", "asc"], "d": ["dfm", "sup"], "why": "Build bottom-up BOM and process cost to set a credible target cost at volume.", "out": "Should-cost model, cost gap", "eff": "2–3 weeks"}, {"id": "T07", "n": "Design-for-manufacture review", "p": [2, 3], "l": "ind", "s": ["energy", "dt", "asc"], "d": ["dfm"], "why": "Plant and supplier engineers review the design for assembly, tolerances and tooling.", "out": "Prioritized design change list", "eff": "1–2 weeks"}, {"id": "T08", "n": "Unit economics bridge", "p": [1, 2, 3, 4, 5], "l": "cap", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["fin"], "why": "Track contribution margin per unit, site, lane or user from pilot to scale.", "out": "Margin bridge by volume step", "eff": "3 days"}, {"id": "T09", "n": "Funding stack map", "p": [2, 3, 4], "l": "cap", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["fin"], "why": "Combine equity, venture debt, grants and customer prepayments to fund industrialization and rollout.", "out": "Funding plan with timing and dilution", "eff": "1 week"}, {"id": "T10", "n": "Supplier & partner risk heatmap", "p": [3], "l": "ind", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["sup"], "why": "Flag single sources, capacity limits, geography and export-control exposure.", "out": "Risk heatmap, dual-source actions", "eff": "1 week"}, {"id": "T11", "n": "VDA 6.3 process audit (light)", "p": [3], "l": "qua", "s": ["energy", "dt", "asc"], "d": ["qua"], "why": "Find process and quality-system gaps before the customer audit does.", "out": "Audit score, action plan", "eff": "2–3 days"}, {"id": "T12", "n": "APQP / PPAP readiness tracker", "p": [3, 4], "l": "qua", "s": ["energy", "dt"], "d": ["qua"], "why": "Track the 18 PPAP elements and APQP deliverables to part submission.", "out": "Element status, submission date", "eff": "Ongoing"}, {"id": "T13", "n": "Capacity & ramp model", "p": [3, 4], "l": "ind", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["mfg"], "why": "Match line, rollout or operations capacity to the demand curve and find the bottleneck.", "out": "Ramp curve, bottleneck list", "eff": "1 week"}, {"id": "T14", "n": "Launch readiness review", "p": [4], "l": "qua", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["qua", "mfg"], "why": "Structured reviews at launch −12, −6 and −3 months across product, process, support and logistics.", "out": "Red/amber/green launch status", "eff": "1 day per review"}, {"id": "T15", "n": "Field quality & warranty loop", "p": [4, 5], "l": "aft", "s": ["energy", "dt", "amc", "asc"], "d": ["qua"], "why": "Connect field failures to 8D problem solving and warranty cost per unit.", "out": "Field ppm, warranty cost trend", "eff": "Ongoing"}, {"id": "T16", "n": "Service & spare-parts integration", "p": [4, 5], "l": "aft", "s": ["energy", "dt", "amc", "asc"], "d": ["org"], "why": "Release part numbers, diagnostics and workshop training for the service network.", "out": "Parts released, workshops trained", "eff": "2–3 months"}, {"id": "T17", "n": "Multi-brand rollout plan", "p": [5], "l": "com", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["com"], "why": "Sequence adaptation to other brands, regions and variants with the business case.", "out": "Rollout roadmap and volumes", "eff": "3–4 weeks"}, {"id": "T18", "n": "Board KPI cockpit", "p": [1, 2, 3, 4, 5], "l": "gov", "s": ["energy", "dt", "amc", "asc", "ai"], "d": ["org", "fin"], "why": "One page of gate KPIs, cash runway and top risks for every board meeting.", "out": "Monthly KPI page", "eff": "2 days to set up"}];
+const STOOLS=[{"id": "E1", "sec": "energy", "n": "Cell, pack & charger validation plan", "p": [1, 2, 3], "l": "eng", "d": ["tech", "qua"], "why": "Map abuse, cycle-life, thermal and charger conformity tests to UN 38.3, UN R100 and IEC 61851, and book labs early.", "out": "Test matrix, lab slots", "eff": "2 weeks"}, {"id": "E2", "sec": "energy", "n": "Interoperability test", "p": [1, 2], "l": "eng", "d": ["tech", "qua"], "why": "Test with eTrucks for CCS, MCS, ISO 15118 and the OCPP backend.", "out": "Test report, fix list", "eff": "1–2 weeks"}, {"id": "E3", "sec": "energy", "n": "Site pipeline & grid tracker", "p": [3, 4, 5], "l": "ind", "d": ["mfg", "sup"], "why": "Track each site from selection to energization, including the grid application.", "out": "Pipeline dashboard", "eff": "Ongoing"}, {"id": "E4", "sec": "energy", "n": "Battery Regulation compliance map", "p": [2, 3, 4], "l": "qua", "d": ["qua", "sup"], "why": "List carbon-footprint, due-diligence and battery-passport obligations with data owners.", "out": "Obligation list with dates", "eff": "1 week"}, {"id": "E5", "sec": "energy", "n": "Site unit economics", "p": [2, 3, 4], "l": "cap", "d": ["fin"], "why": "Model capex, grid fees, utilization and tariff for each site type.", "out": "Payback per site type", "eff": "3 days"}, {"id": "D1", "sec": "dt", "n": "Technical risk register", "p": [1, 2], "l": "eng", "d": ["tech"], "why": "List the physics and process risks that could stop scale-up, with an experiment to retire each.", "out": "Ranked risks, test plan", "eff": "3 days"}, {"id": "D2", "sec": "dt", "n": "Scale-up partner selection", "p": [2, 3], "l": "ind", "d": ["sup", "mfg"], "why": "Compare CDMOs, foundries and tier-1s on capability, capacity and IP terms.", "out": "Partner shortlist", "eff": "3–4 weeks"}, {"id": "D3", "sec": "dt", "n": "IP & freedom-to-operate check", "p": [1, 2], "l": "gov", "d": ["tech", "com"], "why": "Map the patent landscape and confirm the product can be sold without blocking claims.", "out": "FTO opinion, patent map", "eff": "2–4 weeks"}, {"id": "X1", "sec": "amc", "n": "Feedstock & core return model", "p": [1, 2, 3], "l": "aft", "d": ["sup"], "why": "Forecast volumes from workshops, fleets and end-of-life vehicles, with return incentives.", "out": "Feedstock forecast", "eff": "1 week"}, {"id": "X2", "sec": "amc", "n": "Permit & waste-law map", "p": [2, 3], "l": "qua", "d": ["qua"], "why": "List permits by site and material stream with lead times.", "out": "Permit plan", "eff": "1–2 weeks"}, {"id": "X3", "sec": "amc", "n": "Grading & refurbishment standard", "p": [3, 4], "l": "ind", "d": ["mfg", "dfm"], "why": "Write work instructions and grading criteria so output quality doesn't depend on the operator.", "out": "Work instructions, grading criteria", "eff": "2–3 weeks"}, {"id": "X4", "sec": "amc", "n": "LCA & CO₂ savings calculation", "p": [2, 3, 4, 5], "l": "com", "d": ["com"], "why": "Quantify CO₂e saved per unit (ISO 14040/44) to support pricing and customer claims.", "out": "CO₂e saved per unit", "eff": "2 weeks"}, {"id": "X5", "sec": "amc", "n": "Condition & residual-value model", "p": [1, 2, 3], "l": "aft", "d": ["tech", "com"], "why": "Predict remaining life and residual value from fleet and service data to decide repair, reman, resale or recycling.", "out": "Condition score, route-to-value per asset", "eff": "3–4 weeks"}, {"id": "S1", "sec": "asc", "n": "Route, hub & site pilot design", "p": [1, 2], "l": "com", "d": ["tech", "com"], "why": "Select routes, hubs or plants, set the baseline and agree safety and pilot KPIs with customers.", "out": "Pilot scope, KPI baseline", "eff": "1–2 weeks"}, {"id": "S2", "sec": "asc", "n": "Safety case & approval plan", "p": [2, 3], "l": "qua", "d": ["qua"], "why": "Build the safety case and map the approvals needed: ADS type approval, level-4 permits, CE for yard and warehouse robots.", "out": "Safety case, approval roadmap", "eff": "4–8 weeks"}, {"id": "S3", "sec": "asc", "n": "FAT / SAT protocol", "p": [2, 3], "l": "qua", "d": ["qua", "tech"], "why": "Define factory and site acceptance tests with cycle-time, quality and safety criteria.", "out": "Signed acceptance protocols", "eff": "1 week"}, {"id": "S4", "sec": "asc", "n": "Deployment playbook", "p": [3, 4, 5], "l": "ind", "d": ["mfg", "dfm"], "why": "Turn site survey, installation, training and handover into standard steps with durations.", "out": "Playbook, days to productive", "eff": "2 weeks"}, {"id": "S5", "sec": "asc", "n": "Integration connector kit", "p": [3, 4], "l": "ind", "d": ["dfm", "mfg"], "why": "Build reusable connectors to TMS, ERP and telematics so onboarding a customer takes days.", "out": "Connector list, onboarding time", "eff": "Ongoing"}, {"id": "S6", "sec": "asc", "n": "Emissions accounting (ISO 14083)", "p": [2, 3, 4, 5], "l": "qua", "d": ["qua"], "why": "Calculate CO₂e per tonne-km under ISO 14083 and the GLEC Framework for customer reporting.", "out": "Emissions method and report", "eff": "1 week"}, {"id": "A1", "sec": "ai", "n": "Data access & rights agreement", "p": [1], "l": "gov", "d": ["sup"], "why": "Define which data is used, who owns models and derivatives, and retention rules.", "out": "Signed agreement", "eff": "2–3 weeks"}, {"id": "A2", "sec": "ai", "n": "MLOps readiness review", "p": [2, 3], "l": "eng", "d": ["mfg"], "why": "Check versioning, monitoring, retraining and rollback before production release.", "out": "Gap list, go-live checklist", "eff": "1 week"}, {"id": "A3", "sec": "ai", "n": "AI Act & security classification", "p": [2, 3], "l": "qua", "d": ["qua"], "why": "Classify the risk class, list obligations, and run TISAX and penetration-test checks.", "out": "Classification memo, security sign-off", "eff": "2 weeks"}, {"id": "A4", "sec": "ai", "n": "Integration architecture review", "p": [2, 3], "l": "eng", "d": ["dfm", "sup"], "why": "Agree IT and OT interfaces, identity and hosting with group IT.", "out": "Target architecture, effort estimate", "eff": "1 week"}];
+const DIMS=[
+ {k:"tech",n:"Technology",s:"Maturity, performance in real use"},
+ {k:"dfm",n:"Design for manufacture",s:"Design freeze, tolerances"},
+ {k:"mfg",n:"Manufacturing process",s:"MRL, tooling, capacity"},
+ {k:"sup",n:"Supply chain",s:"Sources, capacity, risk"},
+ {k:"qua",n:"Quality & compliance",s:"Audits, certification, regulation"},
+ {k:"com",n:"Commercial traction",s:"Paying customers, pipeline"},
+ {k:"fin",n:"Funding runway",s:"Cash to next gate"},
+ {k:"org",n:"Team & organization",s:"Operators, governance"}
+];
+const TARGET=[[3,1,1,1,1,2,2,2],[4,3,3,2,2,3,3,3],[4,4,4,4,4,4,4,3],[5,5,5,4,5,4,4,4],[5,5,5,5,5,5,4,4]];
+const GATES=[
+ {g:"G1",n:"PoC → Pilot",c:[["Success criteria from the PoC charter met or explained","Must"],["Business value quantified with real data","Must"],["Named business owner who will fund the pilot","Must"],["IP, data rights and confidentiality agreed","Must"],["Export-control and sanctions screening done","Should"],["Pilot customers, sites or vehicles identified","Should"]]},
+ {g:"G2",n:"Pilot → Industrialize",c:[["Pilot KPIs met in real operation","Must"],["Target cost or unit economics within an agreed band","Must"],["Funding for industrialization secured","Must"],["Industrialization plan with owners and budget","Should"],["Critical suppliers or partners identified with backups","Should"],["Compliance roadmap agreed with Legal and Quality","Should"]]},
+ {g:"G3",n:"Industrialize → Launch",c:[["Product and process released under the sector's standard","Must"],["Key supplier and partner contracts signed","Must"],["Capacity or rollout pace covers year-1 demand","Must"],["Launch readiness review green at launch −3 months","Should"],["Warranty, SLA and field-quality process agreed","Should"],["Unit economics at launch volume confirmed","Should"]]},
+ {g:"G4",n:"Launch → Scale",c:[["Target pace reached (run-at-rate or rollout rate)","Must"],["Field quality or uptime at target for 3 months","Must"],["Contribution margin positive at current volume","Must"],["Service and support network ready","Should"],["Cost-down roadmap with quantified steps","Should"],["Second brand, customer or market in qualified pipeline","Should"]]}
+];
+
+const STATUS={on:["On track","st-on"],risk:["At risk","st-risk"],off:["Off track","st-off"]};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const SEC=k=>SECTORS.find(s=>s.k===k)||SECTORS[0];
+const dimLabel=(d,sk)=>{const s=SEC(sk);return s.dims[d.k]?s.dims[d.k]:[d.n,d.s]};
+const live=o=>Object.entries(o||{}).filter(([,v])=>v&&!v.del);
+function rel(iso){if(!iso)return"—";const s=(Date.now()-new Date(iso))/1000;if(s<60)return"just now";if(s<3600)return Math.floor(s/60)+" min ago";if(s<86400)return Math.floor(s/3600)+" h ago";if(s<86400*30)return Math.floor(s/86400)+" d ago";return new Date(iso).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}
+function fmtDate(d){if(!d)return"—";const x=new Date(d+"T00:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"2-digit"})}
+function daysTo(d){if(!d)return null;return Math.round((new Date(d+"T00:00:00")-new Date(today()+"T00:00:00"))/86400000)}
+function fmtNum(v){if(v===null||v===undefined||v==="")return"—";const n=+v;return Math.abs(n)>=1000?n.toLocaleString(undefined,{maximumFractionDigits:0}):n.toLocaleString(undefined,{maximumFractionDigits:2})}
+function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,3200)}
+
+// ---------- derived metrics ----------
+function readiness(c){
+  const t=TARGET[c.phase||0],v=c.scores||DIMS.map(()=>1);
+  const gaps=DIMS.map((d,i)=>({d,i,gap:t[i]-(v[i]||1)})).filter(x=>x.gap>0).sort((a,b)=>b.gap-a.gap);
+  const total=gaps.reduce((a,x)=>a+x.gap,0);
+  const avg=v.reduce((a,b)=>a+(b||1),0)/v.length;
+  const tAvg=t.reduce((a,b)=>a+b,0)/t.length;
+  const gate=PHASES[c.phase||0].gate||"Scale";
+  const verdict=total===0?["v-go","Ready for "+gate]:(total<=3&&gaps.every(x=>x.gap<=1))?["v-cond","Conditional"]:["v-stop","Not ready for "+gate];
+  const met=DIMS.filter((d,i)=>(v[i]||1)>=t[i]).length;
+  return {t,v,gaps,total,avg,tAvg,verdict,met};
+}
+function gateItems(c,gi){
+  const g=GATES[gi],s=SEC(c.sector);
+  const items=g.c.map((x,j)=>({t:x[0],k:x[1],key:g.g+"-"+j,type:"core"}));
+  items.push({t:s.gates[gi],k:"Must",key:g.g+"-sx-"+s.k,type:"sx"});
+  live(c.custom).filter(([,x])=>x.g===g.g).sort((a,b)=>(a[1].at||"").localeCompare(b[1].at||"")).forEach(([id,x])=>items.push({t:x.t,k:x.k,key:g.g+"-c-"+id,type:"cu",cid:id}));
+  return items;
+}
+function gateProgress(c,gi){
+  const items=gateItems(c,gi),tk=c.ticks||{};
+  const musts=items.filter(x=>x.k==="Must");
+  return {items,done:items.filter(x=>tk[x.key]).length,total:items.length,mustDone:musts.filter(x=>tk[x.key]).length,mustTotal:musts.length};
+}
+function kpiLatest(k){const h=Object.entries(k.hist||{}).filter(([,v])=>v!==null&&v!==""&&!isNaN(+v)).sort((a,b)=>a[0].localeCompare(b[0]));return {h,last:h.length?h[h.length-1]:null}}
+function kpiState(k){
+  const {last}=kpiLatest(k);
+  if(!last||k.target===""||k.target===null||k.target===undefined||isNaN(+k.target))return null;
+  const v=+last[1],t=+k.target;
+  return k.dir==="down"?v<=t:v>=t;
+}
+function signals(c){
+  const acts=live(c.actions);
+  const overdue=acts.filter(([,a])=>!a.done&&a.due&&daysTo(a.due)<0).length;
+  const open=acts.filter(([,a])=>!a.done).length;
+  const kp=live(c.kpis).map(([,k])=>kpiState(k)).filter(x=>x!==null);
+  return {overdue,open,kpiOn:kp.filter(Boolean).length,kpiN:kp.length,runwayLow:c.runway!==undefined&&c.runway!==null&&c.runway!==""&&+c.runway<6};
+}
+
+// ---------- state ----------
+let db=null,user=null,me=null,canWrite=null,companies=new Map(),loaded=false;
+let view={co:null};
+let filt=store.get('cockpit-filter',{sec:"all",q:"",sort:"phase"});
+let names={};
+let adding=false,confirmDel=false;
+
+// ---------- writes ----------
+const queues={};
+function logEntry(t){return {[uid()]:{at:new Date().toISOString(),by:me?.id||null,t}}}
+function write(id,patch,logText){
+  if(!db||canWrite===false){toast("You have view-only access to this tracker.");return Promise.resolve()}
+  patch.updatedAt=new Date().toISOString();patch.updatedBy=me?.id||null;
+  if(logText)patch.log=Object.assign(patch.log||{},logEntry(logText));
+  // optimistic local merge so the UI reacts immediately
+  const cur=companies.get(id);if(cur)companies.set(id,deepMerge(structuredClone(cur),patch));
+  const ref=db.collection('companies').doc(id);
+  queues[id]=(queues[id]||Promise.resolve()).then(()=>ref.update(patch)).catch(e=>handleWriteErr(e));
+  return queues[id];
+}
+function deepMerge(a,b){for(const k in b){if(b[k]&&typeof b[k]==="object"&&!Array.isArray(b[k])&&a[k]&&typeof a[k]==="object"&&!Array.isArray(a[k]))deepMerge(a[k],b[k]);else a[k]=b[k]}return a}
+function handleWriteErr(e){
+  const code=e&&e.code;
+  if(code==="invalid_argument"&&canWrite===null){canWrite=false;renderBanner();render();toast("Your access is view-only, so changes are not saved.");return}
+  if(code==="quota_exceeded"){toast("The tracker is full. Delete old companies to make room.");return}
+  toast("Couldn't save that change ("+(code||"error")+"). Try again in a moment.");
+}
+
+// ---------- rendering ----------
+function render(){
+  const ae=document.activeElement;
+  if(ae&&$('view').contains(ae)&&ae.matches('input:not([type=checkbox]):not([type=button]),textarea,select')&&!render.force){render.pending=true;return}
+  render.force=false;render.pending=false;
+  renderTitleBlock();
+  if(view.co&&companies.has(view.co))renderCompany(companies.get(view.co));
+  else{view.co=null;renderPortfolio()}
+  resolveNames();
+}
+document.addEventListener('focusout',()=>setTimeout(()=>{if(render.pending)render()},0));
+
+function renderTitleBlock(){
+  $('tbCount').textContent=loaded?companies.size:"—";
+  const last=[...companies.values()].map(c=>c.updatedAt).filter(Boolean).sort().pop();
+  $('tbLast').textContent=last?rel(last):"—";
+}
+function renderBanner(){
+  const b=$('banner');
+  if(!db&&loaded){b.hidden=false;b.className="banner warn";b.innerHTML="<b>The shared tracker isn't reachable from this view.</b> Open the page on claude.ai while signed in to see and edit portfolio companies.";$('tbAccess').textContent="Offline";return}
+  if(canWrite===false){b.hidden=false;b.className="banner";b.innerHTML="<b>View only.</b> You can follow progress but not change it. Ask the tracker's owner for Contributor or Editor access to update companies.";$('tbAccess').textContent="View only";return}
+  b.hidden=true;$('tbAccess').textContent=db?"Can edit":"—";
+}
+function nameEl(id){return id?`<span data-uid="${esc(id)}">${esc(names[id]||"Someone")}</span>`:"Someone"}
+async function resolveNames(){
+  if(!user)return;
+  const ids=[...new Set([...document.querySelectorAll('[data-uid]')].map(e=>e.dataset.uid))];
+  if(!ids.length)return;
+  const ps=await user.profiles(ids);
+  ids.forEach(id=>{names[id]=(ps[id]&&ps[id].name)||"Someone"});
+  document.querySelectorAll('[data-uid]').forEach(e=>{e.textContent=names[e.dataset.uid]||"Someone"});
+}
+
+// ---------- portfolio view ----------
+function filtered(){
+  const q=filt.q.trim().toLowerCase();
+  let list=[...companies.entries()].map(([id,c])=>({id,c}));
+  if(filt.sec!=="all")list=list.filter(x=>x.c.sector===filt.sec);
+  if(q)list=list.filter(x=>(x.c.name||"").toLowerCase().includes(q)||(x.c.lead||"").toLowerCase().includes(q));
+  return list;
+}
+function sorted(list){
+  const st={off:0,risk:1,on:2};
+  const by={
+    name:(a,b)=>(a.c.name||"").localeCompare(b.c.name||""),
+    phase:(a,b)=>(b.c.phase-a.c.phase)||(a.c.name||"").localeCompare(b.c.name||""),
+    status:(a,b)=>(st[a.c.status]??3)-(st[b.c.status]??3),
+    gap:(a,b)=>readiness(b.c).total-readiness(a.c).total,
+    gate:(a,b)=>(a.c.nextGate||"9999").localeCompare(b.c.nextGate||"9999"),
+    updated:(a,b)=>(b.c.updatedAt||"").localeCompare(a.c.updatedAt||"")
+  };
+  return list.sort(by[filt.sort]||by.phase);
+}
+function renderPortfolio(){
+  const all=[...companies.values()];
+  const list=filtered();
+  const n=all.length;
+  const cnt={on:0,risk:0,off:0};all.forEach(c=>cnt[c.status]=(cnt[c.status]||0)+1);
+  const dueSoon=all.filter(c=>{const d=daysTo(c.nextGate);return d!==null&&d>=0&&d<=90}).length;
+  const overdueGate=all.filter(c=>{const d=daysTo(c.nextGate);return d!==null&&d<0}).length;
+  const ready=all.filter(c=>readiness(c).total===0).length;
+  const sig=all.map(signals);
+  const overdue=sig.reduce((a,s)=>a+s.overdue,0),open=sig.reduce((a,s)=>a+s.open,0);
+  const pct=k=>n?(cnt[k]/n*100):0;
+
+  const strip=`<div class="strip" aria-label="Portfolio summary">
+    <div><span class="label">Companies tracked</span><b>${loaded?n:"—"}</b><small>${SECTORS.filter(s=>all.some(c=>c.sector===s.k)).length} of ${SECTORS.length} sectors</small></div>
+    <div><span class="label">Status</span><b>${loaded?cnt.on:"—"}<span class="muted" style="font-size:1rem"> on track</span></b>
+      <div class="rag" role="img" aria-label="${cnt.on} on track, ${cnt.risk} at risk, ${cnt.off} off track"><i style="width:${pct('on')}%;background:var(--good)"></i><i style="width:${pct('risk')}%;background:var(--warn)"></i><i style="width:${pct('off')}%;background:var(--bad)"></i></div>
+      <small>${cnt.risk} at risk · ${cnt.off} off track</small></div>
+    <div><span class="label">Gate decisions ≤ 90 days</span><b>${loaded?dueSoon:"—"}</b><small>${ready} ready on readiness score${overdueGate?` · <span class="bad">${overdueGate} past date</span>`:""}</small></div>
+    <div><span class="label">Open actions</span><b>${loaded?open:"—"}</b><small>${overdue?`<span class="bad">${overdue} overdue</span>`:"none overdue"}</small></div>
+  </div>`;
+
+  const toolbar=`<div class="row" style="justify-content:space-between">
+    <div class="chips" role="group" aria-label="Filter by sector">${[{k:"all",short:"All sectors"},...SECTORS].map(s=>`<button class="chip" type="button" data-sec="${s.k}" aria-pressed="${filt.sec===s.k}">${esc(s.short)}</button>`).join("")}</div>
+    <div class="row"><input type="search" id="q" placeholder="Search company or lead" value="${esc(filt.q)}" style="width:220px" aria-label="Search companies">
+    ${canWrite!==false&&db?`<button class="btn primary" type="button" id="addBtn">+ Add company</button>`:""}</div>
+  </div>`;
+
+  const addForm=adding?`<form class="panel" id="addForm" aria-label="Add company">
+    <h3>Add a portfolio company</h3>
+    <p class="muted" style="font-size:.88rem">The sector loads its KPIs, gate must-haves and readiness dimensions from the framework. You can change all of them afterwards.</p>
+    <div class="form">
+      <div class="field half"><label class="label" for="nName">Company name</label><input type="text" id="nName" required maxlength="80"></div>
+      <div class="field"><label class="label" for="nSec">Sector</label><select id="nSec">${SECTORS.map(s=>`<option value="${s.k}" ${filt.sec===s.k?"selected":""}>${esc(s.n)}</option>`).join("")}</select></div>
+      <div class="field"><label class="label" for="nPh">Current phase</label><select id="nPh">${PHASES.map((p,i)=>`<option value="${i}">${i+1} ${p.n}</option>`).join("")}</select></div>
+      <div class="field half"><label class="label" for="nLead">Deal lead</label><input type="text" id="nLead" maxlength="60"></div>
+      <div class="field"><label class="label" for="nGate">Next gate date</label><input type="date" id="nGate"></div>
+      <div class="field"><label class="label" for="nRun">Runway (months)</label><input type="number" id="nRun" min="0" step="1"></div>
+    </div>
+    <div class="row"><button class="btn primary" type="submit">Add company</button><button class="btn" type="button" id="addCancel">Cancel</button></div>
+  </form>`:"";
+
+  let board,register,feed;
+  if(!loaded){
+    board=boardHtml([]);register="";feed="";
+  }else if(!n){
+    board=`<div class="empty"><span class="label">No companies yet</span><h3>Add your first portfolio company</h3><p class="lede">Each company appears on the phase board below, with its readiness against the next gate, gate criteria met, KPIs and actions. Start with the company you review next.</p>${canWrite!==false&&db?`<button class="btn primary" type="button" id="addBtn2">+ Add company</button>`:""}</div>`+boardHtml([]);
+    register="";feed="";
+  }else{
+    board=boardHtml(list);
+    register=registerHtml(sorted(list));
+    feed=feedHtml(all);
+  }
+
+  $('view').innerHTML=`<div style="display:flex;flex-direction:column;gap:32px">
+    ${strip}
+    <section aria-labelledby="hBoard">
+      <div class="sechead"><div><span class="label">1 · Phase board</span><h2 id="hBoard">Where each company sits on the path</h2></div></div>
+      ${toolbar}${addForm}${board}
+    </section>
+    ${register?`<section aria-labelledby="hReg"><div class="sechead"><div><span class="label">2 · Register</span><h2 id="hReg">All companies at a glance</h2></div><span class="mono muted">${list.length} shown</span></div>${register}</section>`:""}
+    ${feed?`<section aria-labelledby="hFeed"><div class="sechead"><div><span class="label">3 · Activity</span><h2 id="hFeed">Latest updates across the portfolio</h2></div></div>${feed}</section>`:""}
+  </div>`;
+  bindPortfolio();
+}
+function boardHtml(list){
+  return `<div class="boardwrap"><div class="board">${PHASES.map((p,i)=>{
+    const cs=list.filter(x=>(x.c.phase||0)===i).sort((a,b)=>(a.c.name||"").localeCompare(b.c.name||""));
+    return `<div class="col"><div class="colhead"><span class="label">Phase ${i+1}</span><span class="nm">${p.n}<span>${loaded?cs.length:"—"}</span></span><span class="mono muted" style="font-size:.68rem">${esc(p.tg)}</span>${p.gate?`<span class="gate" aria-label="Gate ${p.gate}"><b>${p.gate}</b></span>`:""}</div>
+    <div class="cards">${cs.length?cs.map(x=>cardHtml(x.id,x.c)).join(""):`<p class="colempty">${loaded?"No companies in this phase.":"Loading…"}</p>`}</div></div>`}).join("")}</div></div>`;
+}
+function cardHtml(id,c){
+  const r=readiness(c),s=SEC(c.sector),gi=c.phase<4?c.phase:null,gp=gi!==null?gateProgress(c,gi):null,sg=signals(c),st=STATUS[c.status]||STATUS.on,d=daysTo(c.nextGate);
+  const w=Math.min(100,r.avg/r.tAvg*100);
+  return `<button class="card ${st[1]}-b" type="button" data-co="${esc(id)}">
+    <span class="cn">${esc(c.name||"Untitled")}</span>
+    <span class="row" style="gap:6px"><span class="tag">${esc(s.short)}</span><span class="pill ${st[1]}">${st[0]}</span></span>
+    <span class="meter ${r.total?"gap":""}" title="Readiness ${r.avg.toFixed(1)} vs gate minimum ${r.tAvg.toFixed(1)}"><i style="width:${w}%"></i></span>
+    <span class="meta"><span>${r.met}/8 dims at gate</span>${gp?`<span>${gp.mustDone}/${gp.mustTotal} musts ${PHASES[c.phase].gate}</span>`:"<span>Scaling</span>"}</span>
+    <span class="meta"><span class="${d!==null&&d<0?"bad":""}">${c.nextGate?(PHASES[c.phase].gate||"Review")+" "+fmtDate(c.nextGate):"No gate date"}</span>${sg.overdue?`<span class="bad">${sg.overdue} overdue</span>`:""}${sg.runwayLow?`<span class="bad">${esc(c.runway)} mo runway</span>`:""}</span>
+  </button>`;
+}
+function registerHtml(list){
+  const th=(k,l,cls="")=>`<th class="${cls}"><button type="button" data-sort="${k}" aria-label="Sort by ${l}">${l}${filt.sort===k?" ▾":""}</button></th>`;
+  return `<div class="tablewrap"><table class="reg"><thead><tr>${th("name","Company")}<th>Sector</th>${th("phase","Phase")}${th("status","Status")}${th("gap","Readiness","num")}<th class="num">Gate musts</th>${th("gate","Next gate")}<th class="num">KPIs on target</th><th class="num">Runway</th><th class="num">Open actions</th>${th("updated","Updated")}</tr></thead><tbody>${list.map(({id,c})=>{
+    const r=readiness(c),s=SEC(c.sector),st=STATUS[c.status]||STATUS.on,sg=signals(c),gp=c.phase<4?gateProgress(c,c.phase):null,d=daysTo(c.nextGate);
+    return `<tr class="pick" data-co="${esc(id)}" tabindex="0"><td class="nm">${esc(c.name||"Untitled")}${c.lead?`<small class="muted" style="display:block;font-family:var(--f-body);font-weight:400;font-size:.78rem">${esc(c.lead)}</small>`:""}</td>
+    <td><span class="tag">${esc(s.short)}</span></td>
+    <td class="mono">${(c.phase||0)+1} ${PHASES[c.phase||0].n}</td>
+    <td><span class="pill ${st[1]}">${st[0]}</span></td>
+    <td class="num"><span class="verdict ${r.verdict[0]}" style="font-size:.74rem">${r.avg.toFixed(1)} · ${r.total?"−"+r.total+" pts":"ready"}</span></td>
+    <td class="num mono">${gp?`${gp.mustDone}/${gp.mustTotal}`:"—"}</td>
+    <td class="mono ${d!==null&&d<0?"bad":""}">${c.nextGate?fmtDate(c.nextGate):"—"}${d!==null?`<small class="muted" style="display:block">${d<0?(-d)+" d late":"in "+d+" d"}</small>`:""}</td>
+    <td class="num mono">${sg.kpiN?`<span class="${sg.kpiOn<sg.kpiN?"warn":"good"}">${sg.kpiOn}/${sg.kpiN}</span>`:"—"}</td>
+    <td class="num mono ${sg.runwayLow?"bad":""}">${c.runway!==undefined&&c.runway!==""&&c.runway!==null?esc(c.runway)+" mo":"—"}</td>
+    <td class="num mono">${sg.open}${sg.overdue?` <span class="bad">(${sg.overdue} late)</span>`:""}</td>
+    <td class="mono muted">${rel(c.updatedAt)}</td></tr>`}).join("")}</tbody></table></div>`;
+}
+function feedHtml(all){
+  const items=[];
+  companies.forEach((c,id)=>live(c.log).forEach(([lid,l])=>items.push({id,c,l})));
+  items.sort((a,b)=>(b.l.at||"").localeCompare(a.l.at||""));
+  const top=items.slice(0,15);
+  if(!top.length)return `<p class="muted">No activity yet.</p>`;
+  return `<ul class="feed">${top.map(x=>`<li><time datetime="${esc(x.l.at)}">${rel(x.l.at)}</time><div><button class="co" type="button" data-co="${esc(x.id)}">${esc(x.c.name)}</button> · ${esc(x.l.t)} <span class="who">— ${nameEl(x.l.by)}</span></div></li>`).join("")}</ul>`;
+}
+function bindPortfolio(){
+  document.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>{filt.sec=b.dataset.sec;store.set('cockpit-filter',filt);render()});
+  document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{filt.sort=b.dataset.sort;store.set('cockpit-filter',filt);render()});
+  const q=$('q');if(q){q.oninput=()=>{filt.q=q.value;store.set('cockpit-filter',filt);clearTimeout(q._t);q._t=setTimeout(()=>{render.force=true;render();const n=$('q');n.focus();n.setSelectionRange(n.value.length,n.value.length)},250)}}
+  document.querySelectorAll('[data-co]').forEach(el=>{const go=()=>openCompany(el.dataset.co);el.onclick=go;if(el.tagName==="TR")el.onkeydown=e=>{if(e.key==="Enter")go()}});
+  ['addBtn','addBtn2'].forEach(k=>{const b=$(k);if(b)b.onclick=()=>{adding=true;render.force=true;render();$('nName').focus()}});
+  const f=$('addForm');
+  if(f){$('addCancel').onclick=()=>{adding=false;render.force=true;render()};f.onsubmit=e=>{e.preventDefault();createCompany()}}
+}
+function openCompany(id){view.co=id;confirmDel=false;render.force=true;render();window.scrollTo({top:0})}
+
+async function createCompany(){
+  const name=$('nName').value.trim();if(!name){$('nName').focus();return}
+  const sk=$('nSec').value,s=SEC(sk),ph=+$('nPh').value;
+  const now=new Date().toISOString();
+  const kpis={};s.kpis.forEach((n,i)=>kpis[uid()]={n,unit:"",base:"",target:"",dir:"up",ord:i,hist:{}});
+  const doc={name,sector:sk,phase:ph,status:"on",lead:$('nLead').value.trim(),nextGate:$('nGate').value||"",runway:$('nRun').value===""?"":+$('nRun').value,summary:"",
+    scores:DIMS.map(()=>1),rhist:{},ticks:{},custom:{},kpis,actions:{},log:logEntry(`Added to the tracker in phase ${ph+1} ${PHASES[ph].n}`),createdAt:now,updatedAt:now,updatedBy:me?.id||null};
+  const btn=document.querySelector('#addForm [type=submit]');btn.disabled=true;
+  try{
+    const ref=db.collection('companies').doc();
+    await ref.set(doc);
+    companies.set(ref.id,doc);adding=false;toast(name+" added");openCompany(ref.id);
+  }catch(e){btn.disabled=false;handleWriteErr(e)}
+}
+
+// ---------- company view ----------
+function renderCompany(c){
+  const id=view.co,s=SEC(c.sector),r=readiness(c),st=STATUS[c.status]||STATUS.on,sg=signals(c),ro=canWrite===false||!db;
+  const dis=ro?"disabled":"";
+  const d=daysTo(c.nextGate);
+  const profile=`<div class="cohead">
+    <div class="row"><button class="link" type="button" id="back">← All companies</button></div>
+    <div class="top">
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <span class="label">${esc(s.n)} · ${esc(s.arch)}</span>
+        <h1>${esc(c.name||"Untitled")}</h1>
+        <div class="signals"><span class="pill ${st[1]}">${st[0]}</span><span class="verdict ${r.verdict[0]}">${r.verdict[1]}</span>${sg.overdue?`<span class="verdict v-stop">${sg.overdue} overdue action${sg.overdue>1?"s":""}</span>`:""}${sg.runwayLow?`<span class="verdict v-stop">Runway ${esc(c.runway)} mo</span>`:""}${d!==null&&d<0?`<span class="verdict v-stop">Gate date passed</span>`:""}</div>
+      </div>
+      <div class="mono muted" style="text-align:right">Updated ${rel(c.updatedAt)}${c.updatedBy?` by ${nameEl(c.updatedBy)}`:""}</div>
+    </div>
+  </div>
+  <form class="panel" id="prof" aria-label="Company profile">
+    <div class="form">
+      <div class="field half"><label class="label" for="pName">Company name</label><input type="text" id="pName" value="${esc(c.name)}" maxlength="80" ${dis}></div>
+      <div class="field"><label class="label" for="pSec">Sector</label><select id="pSec" ${dis}>${SECTORS.map(x=>`<option value="${x.k}" ${x.k===c.sector?"selected":""}>${esc(x.n)}</option>`).join("")}</select></div>
+      <div class="field"><label class="label" for="pSt">Status</label><select id="pSt" ${dis}>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${k===c.status?"selected":""}>${v[0]}</option>`).join("")}</select></div>
+      <div class="field"><label class="label" for="pLead">Deal lead</label><input type="text" id="pLead" value="${esc(c.lead)}" maxlength="60" ${dis}></div>
+      <div class="field"><label class="label" for="pGate">Next ${PHASES[c.phase].gate||"review"} date</label><input type="date" id="pGate" value="${esc(c.nextGate)}" ${dis}></div>
+      <div class="field"><label class="label" for="pRun">Runway (months)</label><input type="number" id="pRun" min="0" step="1" value="${esc(c.runway)}" ${dis}></div>
+      <div class="field"><label class="label" for="pStage">Maturity reference</label><input type="text" id="pStage" value="${esc(s.mat[c.phase])}" disabled></div>
+      <div class="field wide"><label class="label" for="pSum">Current situation &amp; next milestone</label><textarea id="pSum" maxlength="1200" ${dis} placeholder="What changed since the last review, and what the company must show next.">${esc(c.summary)}</textarea></div>
+    </div>
+  </form>`;
+
+  const track=`<section aria-labelledby="hTrack"><div class="sechead"><div><span class="label">1 · Phase</span><h2 id="hTrack">Phase ${c.phase+1} of 5 · ${PHASES[c.phase].n}</h2><p class="lede">${esc(s.ph[c.phase])}</p></div></div>
+    <div class="track" role="group" aria-label="Set phase">${PHASES.map((p,i)=>`<button class="stage ${i<c.phase?"done":""}" type="button" data-ph="${i}" aria-pressed="${i===c.phase}" ${dis}><span class="num">Phase ${i+1}${i<c.phase?" · passed":""}</span><span class="nm">${p.n}</span><span class="tg">${esc(s.mat[i])}</span>${p.gate?`<span class="gate" aria-label="Gate ${p.gate}"><b>${p.gate}</b></span>`:""}</button>`).join("")}</div>
+    <p class="muted" style="font-size:.84rem">Key question for this phase: <b style="color:var(--ink)">${esc(PHASES[c.phase].q)}</b> ${ro?"":"Select a phase to move the company once its gate is passed."}</p>
+  </section>`;
+
+  const hist=Object.entries(c.rhist||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+  const ready=`<section aria-labelledby="hReady"><div class="sechead"><div><span class="label">2 · Readiness</span><h2 id="hReady">Readiness against ${PHASES[c.phase].gate||"scale"}</h2><p class="lede">Score each dimension 1 to 5. The dashed line is the minimum for the next gate; gaps point to the framework tools that close them.</p></div>${c.scoredAt?`<span class="mono muted">Last scored ${rel(c.scoredAt)}</span>`:""}</div>
+    <div class="ready">
+      <div class="panel"><div class="sliders">${DIMS.map((dm,i)=>{const[n,sub]=dimLabel(dm,c.sector);return `<div class="sl"><label for="d${i}">${esc(n)}<small>${esc(sub)}</small></label><input type="range" id="d${i}" min="1" max="5" step="1" value="${r.v[i]||1}" ${dis}><output id="o${i}" class="${(r.v[i]||1)<r.t[i]?"gap":""}">${r.v[i]||1} / ${r.t[i]}</output></div>`}).join("")}</div></div>
+      <div class="panel">
+        <svg id="radar" viewBox="-60 0 540 380" role="img" aria-label="Readiness radar chart" style="width:100%;max-width:520px;align-self:center">${radar(r.v,r.t,c.sector)}</svg>
+        <div class="score"><div><span class="label">Average</span><b>${r.avg.toFixed(1)}</b></div><div><span class="label">Gap points</span><b>${r.total}</b></div><div><span class="label">Trend</span>${hist.length>1?sparkHtml(hist.map(h=>h[1].avg),{min:1,max:5,w:140}):`<span class="mono muted" style="padding-top:6px">Builds as scores change</span>`}</div></div>
+        <div><span class="label">Gaps to close before the gate</span><ul class="gaps" style="margin-top:8px">${r.gaps.length?r.gaps.map(x=>`<li><b>${esc(dimLabel(x.d,c.sector)[0])}</b> needs +${x.gap}. <span>Use ${toolsFor(x.d.k,c.sector).map(q=>q.id+" "+esc(q.n)).join(", ")||"the board KPI cockpit to set an owner"}.</span></li>`).join(""):`<li style="border-color:var(--good)">All dimensions meet the gate minimum.</li>`}</ul></div>
+      </div>
+    </div></section>`;
+
+  const gates=`<section aria-labelledby="hGates"><div class="sechead"><div><span class="label">3 · Gates</span><h2 id="hGates">Gate criteria</h2><p class="lede">Core criteria, the ${esc(s.short)} must-have (orange) and criteria you add for this company (teal). Must-haves block the gate; should-haves can pass with a dated plan.</p></div></div>
+    <div class="gates">${GATES.map((g,gi)=>{const gp=gateProgress(c,gi),tk=c.ticks||{},cls=gi===c.phase?"next":gi<c.phase?"passed":"";
+      return `<div class="gatecard ${cls}"><header><div class="row"><span class="g">${g.g}</span><h3>${g.n}</h3>${gi===c.phase?`<span class="tag s">Next gate</span>`:gi<c.phase?`<span class="tag">Passed</span>`:""}</div><span class="prog">${gp.done}/${gp.total}${gp.mustDone===gp.mustTotal?" · musts met":` · ${gp.mustDone}/${gp.mustTotal} musts`}</span></header>
+      <ul>${gp.items.map(x=>`<li class="${x.type}"><label><input type="checkbox" data-tick="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}" ${tk[x.key]?"checked":""} ${dis}><span>${esc(x.t)}</span><span class="kind">${x.type==="sx"?esc(s.short.toUpperCase())+" · MUST":x.type==="cu"?"OWN · "+x.k.toUpperCase():x.k.toUpperCase()}</span></label>${x.type==="cu"&&!ro?`<button class="x" type="button" data-delc="${esc(x.cid)}" aria-label="Remove criterion">×</button>`:""}</li>`).join("")}</ul>
+      ${ro?"":`<form data-addc="${g.g}"><input type="text" id="nc-${g.g}" placeholder="Add a criterion for this company" maxlength="160" aria-label="New ${g.g} criterion"><select id="nk-${g.g}" aria-label="Criterion type"><option>Must</option><option>Should</option></select><button class="btn small" type="submit">Add</button></form>`}</div>`}).join("")}</div></section>`;
+
+  const kp=live(c.kpis).sort((a,b)=>(a[1].ord??0)-(b[1].ord??0));
+  const kpis=`<section aria-labelledby="hKpi"><div class="sechead"><div><span class="label">4 · KPIs</span><h2 id="hKpi">KPIs against target</h2><p class="lede">Starts from the ${esc(s.short)} KPI set. Set a baseline and target, then log a reading whenever new numbers arrive; the trend builds from the readings.</p></div><span class="mono muted">${sg.kpiN?`${sg.kpiOn}/${sg.kpiN} on target`:"No targets set"}</span></div>
+    <div class="tablewrap"><table class="kpit"><thead><tr><th>KPI</th><th>Unit</th><th>Better</th><th class="num">Baseline</th><th class="num">Target</th><th class="num">Latest</th><th>Trend</th><th>Log reading</th><th></th></tr></thead><tbody>
+    ${kp.length?kp.map(([kid,k])=>{const {h,last}=kpiLatest(k),ok=kpiState(k);return `<tr>
+      <td style="min-width:200px"><input type="text" data-kf="n" data-kid="${kid}" value="${esc(k.n)}" aria-label="KPI name" ${dis}></td>
+      <td><input type="text" data-kf="unit" data-kid="${kid}" value="${esc(k.unit)}" style="width:80px" aria-label="Unit" ${dis}></td>
+      <td><select data-kf="dir" data-kid="${kid}" aria-label="Direction" style="width:auto" ${dis}><option value="up" ${k.dir!=="down"?"selected":""}>Higher</option><option value="down" ${k.dir==="down"?"selected":""}>Lower</option></select></td>
+      <td class="num"><input type="number" step="any" data-kf="base" data-kid="${kid}" value="${esc(k.base)}" aria-label="Baseline" ${dis}></td>
+      <td class="num"><input type="number" step="any" data-kf="target" data-kid="${kid}" value="${esc(k.target)}" aria-label="Target" ${dis}></td>
+      <td class="num mono"><b class="${ok===null?"":ok?"good":"bad"}">${last?fmtNum(last[1]):"—"}</b>${last?`<small class="muted" style="display:block">${fmtDate(last[0])}</small>`:""}</td>
+      <td>${h.length>1?sparkHtml(h.map(x=>+x[1]),{target:k.target===""?null:+k.target,ok}):`<span class="mono muted" style="font-size:.72rem">${h.length?"1 reading":"No readings"}</span>`}</td>
+      <td>${ro?"":`<form class="logrow" data-logk="${kid}"><input type="date" value="${today()}" aria-label="Reading date"><input type="number" step="any" placeholder="Value" aria-label="Reading value" required><button class="btn small" type="submit">Log</button></form>`}</td>
+      <td>${ro?"":`<button class="x link" type="button" data-delk="${kid}" style="color:var(--muted)" aria-label="Remove KPI">Remove</button>`}</td></tr>`}).join(""):`<tr><td colspan="9" class="muted">No KPIs yet.</td></tr>`}
+    </tbody></table></div>
+    ${ro?"":`<div class="row"><button class="btn" type="button" id="addKpi">+ Add KPI</button></div>`}</section>`;
+
+  const acts=live(c.actions).sort((a,b)=>(a[1].done-b[1].done)||(a[1].due||"9999").localeCompare(b[1].due||"9999"));
+  const tl=[...STOOLS.filter(t=>t.sec===c.sector),...CORE.filter(t=>t.s.includes(c.sector))].filter(t=>t.p.includes(c.phase+1));
+  const tAll=[...STOOLS,...CORE];
+  const actions=`<section aria-labelledby="hAct"><div class="sechead"><div><span class="label">5 · Actions</span><h2 id="hAct">Value creation actions</h2><p class="lede">Owned, dated actions to close readiness gaps and gate criteria. Link each one to the framework tool it uses.</p></div><span class="mono muted">${sg.open} open${sg.overdue?` · <span class="bad">${sg.overdue} overdue</span>`:""}</span></div>
+    ${ro?"":`<form class="panel" id="actForm" aria-label="New action"><div class="form">
+      <div class="field half"><label class="label" for="aT">Action</label><input type="text" id="aT" maxlength="200" required placeholder="e.g. Book UN R100 lab slot for B-sample pack"></div>
+      <div class="field"><label class="label" for="aO">Owner</label><input type="text" id="aO" maxlength="60"></div>
+      <div class="field"><label class="label" for="aD">Due</label><input type="date" id="aD"></div>
+      <div class="field half"><label class="label" for="aTool">Framework tool</label><select id="aTool"><option value="">No tool</option>${tl.map(t=>`<option value="${t.id}">${t.id} · ${esc(t.n)}</option>`).join("")}</select></div>
+      <div class="field" style="justify-content:flex-end"><button class="btn primary" type="submit">Add action</button></div>
+    </div></form>`}
+    ${acts.length?`<ul class="acts">${acts.map(([aid,a])=>{const dd=daysTo(a.due),od=!a.done&&dd!==null&&dd<0,tool=tAll.find(t=>t.id===a.tool);return `<li class="${a.done?"done":""}"><input type="checkbox" data-act="${aid}" ${a.done?"checked":""} aria-label="Mark done" ${dis}><div style="min-width:0"><div class="t">${esc(a.t)}</div><div class="sub">${a.owner?`<span>${esc(a.owner)}</span>`:""}${a.due?`<span class="${od?"od":""}">${od?"Overdue · ":"Due "}${fmtDate(a.due)}</span>`:""}${tool?`<span>${tool.id} ${esc(tool.n)}</span>`:""}</div></div>${ro?"<span></span>":`<button class="link" type="button" data-dela="${aid}" style="color:var(--muted)">Remove</button>`}</li>`}).join("")}</ul>`:`<p class="muted">No actions yet.</p>`}
+  </section>`;
+
+  const lg=live(c.log).sort((a,b)=>(b[1].at||"").localeCompare(a[1].at||"")).slice(0,40);
+  const activity=`<section aria-labelledby="hLog"><div class="sechead"><div><span class="label">6 · Activity</span><h2 id="hLog">Activity log</h2></div></div>
+    ${ro?"":`<form class="row" id="noteForm"><input type="text" id="note" class="grow" maxlength="400" placeholder="Add a note: board decision, customer feedback, risk raised…" aria-label="Note" style="flex:1 1 260px;width:auto"><button class="btn" type="submit">Add note</button></form>`}
+    <ul class="feed">${lg.length?lg.map(([,l])=>`<li><time datetime="${esc(l.at)}">${rel(l.at)}</time><div>${esc(l.t)} <span class="who">— ${nameEl(l.by)}</span></div></li>`).join(""):`<li><span></span><span class="muted">No activity yet.</span></li>`}</ul>
+  </section>`;
+
+  const danger=ro?"":`<section><div class="row">${confirmDel?`<div class="confirm"><b>Delete ${esc(c.name)} and its whole history for everyone?</b><button class="btn danger" type="button" id="delYes">Delete company</button><button class="btn" type="button" id="delNo">Keep it</button></div>`:`<button class="btn danger" type="button" id="delCo">Delete company…</button>`}</div></section>`;
+
+  $('view').innerHTML=`<div style="display:flex;flex-direction:column;gap:36px">${profile}${track}${ready}${gates}${kpis}${actions}${activity}${danger}</div>`;
+  bindCompany(id,c);
+}
+function toolsFor(dk,sk){
+  const sx=STOOLS.filter(t=>t.sec===sk&&t.d.includes(dk));
+  const core=CORE.filter(t=>t.s.includes(sk)&&t.d.includes(dk));
+  return [...sx,...core].slice(0,3);
+}
+function shortName(n){return n.length>18?n.split(/ & | /)[0]:n}
+function radar(v,t,sk){
+  const cx=210,cy=190,R=128,n=DIMS.length;
+  const pt=(i,val)=>{const a=-Math.PI/2+i*2*Math.PI/n;const r=R*val/5;return[cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+  let s='';
+  for(let k=1;k<=5;k++)s+=`<polygon points="${DIMS.map((_,i)=>pt(i,k).join(',')).join(' ')}" fill="none" stroke="var(--line)" stroke-width="1"/>`;
+  DIMS.forEach((d,i)=>{const[x,y]=pt(i,5);s+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`;
+    const[lx,ly]=pt(i,6.0);const anchor=Math.abs(lx-cx)<8?"middle":(lx>cx?"start":"end");
+    s+=`<text x="${lx}" y="${ly+4}" text-anchor="${anchor}" font-size="10.5" fill="${(v[i]||1)<t[i]?"var(--bad)":"var(--muted)"}">${esc(shortName(dimLabel(d,sk)[0]))}</text>`;});
+  [1,3,5].forEach(k=>{const[x,y]=pt(0,k);s+=`<text x="${x+5}" y="${y+3}" font-size="9" fill="var(--muted)">${k}</text>`});
+  s+=`<polygon points="${DIMS.map((_,i)=>pt(i,v[i]||1).join(',')).join(' ')}" fill="var(--accent)" fill-opacity=".22" stroke="var(--accent)" stroke-width="2"/>`;
+  s+=`<polygon points="${DIMS.map((_,i)=>pt(i,t[i]).join(',')).join(' ')}" fill="none" stroke="var(--signal)" stroke-width="2" stroke-dasharray="5 4"/>`;
+  DIMS.forEach((_,i)=>{const[x,y]=pt(i,v[i]||1);s+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${(v[i]||1)<t[i]?"var(--bad)":"var(--accent)"}"/>`});
+  s+=`<g font-size="10" fill="var(--muted)"><rect x="12" y="354" width="14" height="4" fill="var(--accent)"/><text x="32" y="359">Current</text><line x1="96" y1="356" x2="112" y2="356" stroke="var(--signal)" stroke-width="2" stroke-dasharray="5 4"/><text x="118" y="359">Gate minimum</text></g>`;
+  return s;
+}
+function sparkHtml(vals,o={}){
+  const w=o.w||120,h=30,p=3;
+  let lo=o.min??Math.min(...vals,o.target??Infinity),hi=o.max??Math.max(...vals,o.target??-Infinity);
+  if(hi===lo){hi+=1;lo-=1}
+  const x=i=>p+i*(w-2*p)/(vals.length-1),y=v=>h-p-(v-lo)/(hi-lo)*(h-2*p);
+  const pts=vals.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const col=o.ok===false?"var(--bad)":"var(--accent)";
+  const last=vals.length-1;
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" role="img" aria-label="Trend of ${vals.length} readings">
+    ${o.target!==undefined&&o.target!==null&&!isNaN(o.target)?`<line x1="${p}" x2="${w-p}" y1="${y(o.target)}" y2="${y(o.target)}" stroke="var(--signal)" stroke-dasharray="3 3" stroke-width="1"/>`:""}
+    <polygon points="${x(0)},${h-p} ${pts} ${x(last)},${h-p}" fill="${col}" fill-opacity=".12"/>
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="${x(last)}" cy="${y(vals[last])}" r="2.6" fill="${col}"/></svg>`;
+}
+function bindCompany(id,c){
+  $('back').onclick=()=>{view.co=null;render.force=true;render()};
+  if(canWrite===false||!db)return;
+  const s=SEC(c.sector);
+  // profile fields save on change
+  const pf=(el,field,label,conv=v=>v)=>{el.onchange=()=>{const v=conv(el.value);if(v===c[field])return;const p={[field]:v};let lt=null;
+    if(field==="status")lt=`Status set to ${STATUS[v][0]}`;
+    else if(field==="sector")lt=`Sector changed to ${SEC(v).n}`;
+    else if(field==="nextGate")lt=v?`${PHASES[c.phase].gate||"Review"} date set to ${fmtDate(v)}`:"Gate date cleared";
+    else if(field==="runway")lt=`Runway updated to ${v===""?"—":v+" months"}`;
+    else if(field==="name")lt=`Renamed to ${v}`;
+    write(id,p,lt);render.force=true;render()}};
+  pf($('pName'),'name','',v=>v.trim()||c.name);pf($('pSec'),'sector');pf($('pSt'),'status');pf($('pLead'),'lead','',v=>v.trim());
+  pf($('pGate'),'nextGate');pf($('pRun'),'runway','',v=>v===""?"":+v);pf($('pSum'),'summary','',v=>v.trim());
+  $('prof').onsubmit=e=>e.preventDefault();
+  // phase
+  document.querySelectorAll('[data-ph]').forEach(b=>b.onclick=()=>{const p=+b.dataset.ph;if(p===c.phase)return;
+    write(id,{phase:p},p>c.phase?`Passed ${PHASES[c.phase].gate||""} → moved to phase ${p+1} ${PHASES[p].n}`.replace("  "," "):`Moved back to phase ${p+1} ${PHASES[p].n}`);render.force=true;render()});
+  // readiness sliders: live preview on input, save on release
+  DIMS.forEach((d,i)=>{const el=$('d'+i);
+    el.oninput=()=>{const v=+el.value;const t=TARGET[c.phase][i];const o=$('o'+i);o.textContent=`${v} / ${t}`;o.className=v<t?"gap":"";
+      const sc=[...(c.scores||DIMS.map(()=>1))];sc[i]=v;$('radar').innerHTML=radar(sc,TARGET[c.phase],c.sector)};
+    el.onchange=()=>{const sc=[...(c.scores||DIMS.map(()=>1))];const old=sc[i];sc[i]=+el.value;if(old===sc[i])return;
+      const r=readiness({...c,scores:sc});
+      write(id,{scores:sc,scoredAt:new Date().toISOString(),rhist:{[today()]:{avg:+r.avg.toFixed(2),gap:r.total,phase:c.phase}}},`${dimLabel(d,c.sector)[0]} scored ${sc[i]} (was ${old||1})`);
+      render.force=true;render()}});
+  // gate ticks
+  document.querySelectorAll('[data-tick]').forEach(cb=>cb.onchange=()=>{write(id,{ticks:{[cb.dataset.tick]:cb.checked}},`${cb.dataset.g} ${cb.checked?"✓":"unticked"}: ${cb.dataset.txt}`);render.force=true;render()});
+  document.querySelectorAll('[data-addc]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const g=f.dataset.addc,t=$('nc-'+g).value.trim();if(!t)return;
+    write(id,{custom:{[uid()]:{g,t,k:$('nk-'+g).value,at:new Date().toISOString()}}},`${g} criterion added: ${t}`);render.force=true;render()});
+  document.querySelectorAll('[data-delc]').forEach(b=>b.onclick=()=>{const x=c.custom[b.dataset.delc];write(id,{custom:{[b.dataset.delc]:{del:true}}},`${x.g} criterion removed: ${x.t}`);render.force=true;render()});
+  // KPIs
+  document.querySelectorAll('[data-kf]').forEach(el=>el.onchange=()=>{const f=el.dataset.kf,kid=el.dataset.kid,k=c.kpis[kid];let v=el.value;if(f==="base"||f==="target")v=v===""?"":+v;if(f==="n")v=v.trim()||k.n;
+    const lt=f==="target"?`KPI target for ${k.n} set to ${v===""?"—":fmtNum(v)}${k.unit?" "+k.unit:""}`:f==="n"?`KPI renamed to ${v}`:null;
+    write(id,{kpis:{[kid]:{[f]:v}}},lt);render.force=true;render()});
+  document.querySelectorAll('[data-logk]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const kid=f.dataset.logk,k=c.kpis[kid],[dEl,vEl]=f.querySelectorAll('input');if(vEl.value===""||!dEl.value)return;const v=+vEl.value;
+    write(id,{kpis:{[kid]:{hist:{[dEl.value]:v}}}},`${k.n}: ${fmtNum(v)}${k.unit?" "+k.unit:""} logged for ${fmtDate(dEl.value)}`);render.force=true;render()});
+  document.querySelectorAll('[data-delk]').forEach(b=>b.onclick=()=>{const k=c.kpis[b.dataset.delk];write(id,{kpis:{[b.dataset.delk]:{del:true}}},`KPI removed: ${k.n}`);render.force=true;render()});
+  const ak=$('addKpi');if(ak)ak.onclick=()=>{const n=live(c.kpis).length;write(id,{kpis:{[uid()]:{n:"New KPI",unit:"",base:"",target:"",dir:"up",ord:n+100,hist:{}}}},null);render.force=true;render()};
+  // actions
+  const af=$('actForm');if(af)af.onsubmit=e=>{e.preventDefault();const t=$('aT').value.trim();if(!t)return;
+    write(id,{actions:{[uid()]:{t,owner:$('aO').value.trim(),due:$('aD').value||"",tool:$('aTool').value,done:false,at:new Date().toISOString()}}},`Action added: ${t}`);render.force=true;render()};
+  document.querySelectorAll('[data-act]').forEach(cb=>cb.onchange=()=>{const a=c.actions[cb.dataset.act];write(id,{actions:{[cb.dataset.act]:{done:cb.checked}}},`${cb.checked?"Action done":"Action reopened"}: ${a.t}`);render.force=true;render()});
+  document.querySelectorAll('[data-dela]').forEach(b=>b.onclick=()=>{const a=c.actions[b.dataset.dela];write(id,{actions:{[b.dataset.dela]:{del:true}}},`Action removed: ${a.t}`);render.force=true;render()});
+  // notes
+  const nf=$('noteForm');if(nf)nf.onsubmit=e=>{e.preventDefault();const t=$('note').value.trim();if(!t)return;write(id,{},"Note: "+t);render.force=true;render()};
+  // delete
+  const dc=$('delCo');if(dc)dc.onclick=()=>{confirmDel=true;render.force=true;render()};
+  const dn=$('delNo');if(dn)dn.onclick=()=>{confirmDel=false;render.force=true;render()};
+  const dy=$('delYes');if(dy)dy.onclick=async()=>{dy.disabled=true;const nm=c.name;try{await db.collection('companies').doc(id).delete();companies.delete(id);view.co=null;confirmDel=false;toast(nm+" deleted");render.force=true;render()}catch(e){dy.disabled=false;handleWriteErr(e)}};
+}
+
+// ---------- boot ----------
+render();
+(async()=>{
+  const cl=window.claude;
+  if(!cl||!cl.use){loaded=true;renderBanner();setLive(false,"Not connected");render.force=true;render();return}
+  [db,user]=await Promise.all([cl.use("db"),cl.use("user")]);
+  if(user){me=await user.me();const cw=await user.can("data.write");canWrite=cw===null?null:cw}
+  if(!db){loaded=true;renderBanner();setLive(false,"Not connected");render.force=true;render();return}
+  renderBanner();
+  db.collection('companies').onSnapshot(snap=>{
+    const m=new Map();snap.docs.forEach(d=>{if(d.exists)m.set(d.id,structuredClone(d.data()))});
+    companies=m;loaded=true;setLive(true,snap.metadata.fromCache?"Syncing…":"Live");renderBanner();render();
+  },err=>{setLive(false,"Disconnected");toast("Lost the live connection. Reload the page to reconnect.")});
+})();
+function setLive(on,t){$('live').classList.toggle('on',on);$('liveTxt').textContent=t}
+setInterval(()=>{if(!render.pending&&!document.activeElement?.matches?.('input,textarea,select'))renderTitleBlock()},60000);
+</script>
