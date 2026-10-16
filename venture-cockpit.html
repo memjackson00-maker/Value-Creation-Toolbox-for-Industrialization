@@ -1,0 +1,718 @@
+<title>Venture Foundation Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same technical-drawing language as VCF-FND-01 and VCF-IND-02. Venture list view = title block, KPI strip, phase board (5 columns, 4 gates), register table, activity feed. Company view = profile, phase track, readiness radar, gate checklists, KPI log, actions, activity. */
+:root{
+  --bg:#f3f4f2; --panel:#ffffff; --ink:#1b2126; --muted:#5b6670; --line:#d3d8d6; --line-strong:#9aa5a8;
+  --accent:#0f6f74; --accent-soft:#dcecec; --signal:#c7751a; --signal-soft:#f6e6d2;
+  --good:#2f7d4a; --warn:#b3661a; --bad:#b23a3a; --on-accent:#ffffff;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111618; --panel:#182023; --ink:#e3e8e7; --muted:#9aa6aa; --line:#2b3639; --line-strong:#4b585c;
+  --accent:#4fb3b5; --accent-soft:#16383a; --signal:#e39a4c; --signal-soft:#3a2a18;
+  --good:#6cc28a; --warn:#e3a45c; --bad:#e07a7a; --on-accent:#0d1416; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111618; --panel:#182023; --ink:#e3e8e7; --muted:#9aa6aa; --line:#2b3639; --line-strong:#4b585c;
+  --accent:#4fb3b5; --accent-soft:#16383a; --signal:#e39a4c; --signal-soft:#3a2a18;
+  --good:#6cc28a; --warn:#e3a45c; --bad:#e07a7a; --on-accent:#0d1416; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:24px 64px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,5vw,3rem)}
+h2{font-size:1.6rem}
+h3{font-size:1.15rem;font-weight:600}
+p{margin:0}
+.label{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.lede{max-width:68ch;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-size:.82rem;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:16px;min-width:0}
+.sechead{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.sechead>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+
+.head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end}
+.head .intro{display:flex;flex-direction:column;gap:10px;min-width:0}
+.tblock{border:1.5px solid var(--ink);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));font-family:var(--f-mono);font-size:.74rem;min-width:300px;background:var(--panel)}
+.tblock div{padding:6px 10px;border-right:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}
+.tblock div:nth-child(2n){border-right:0}
+.tblock div:nth-last-child(-n+2){border-bottom:0}
+.tblock span{display:block;font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+@media (max-width:760px){.head{grid-template-columns:1fr}.tblock{min-width:0}}
+
+.banner{border:1px solid var(--line-strong);background:var(--panel);padding:10px 14px;font-size:.9rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner.warn{border-color:var(--warn);background:var(--signal-soft)}
+.live{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--line-strong);display:block}
+.live.on i{background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent)}
+
+/* buttons, inputs */
+.btn{border:1px solid var(--line-strong);background:var(--panel);padding:6px 12px;border-radius:3px;cursor:pointer;font-size:.88rem;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.btn.primary:hover{filter:brightness(1.08);color:var(--on-accent)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.small{padding:3px 9px;font-size:.8rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.link{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font-size:.86rem;text-decoration:underline;text-underline-offset:2px}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{background:var(--panel);border:1px solid var(--line-strong);border-radius:3px;padding:6px 8px;min-width:0;width:100%}
+textarea{resize:vertical;min-height:64px}
+input:disabled,select:disabled,textarea:disabled{opacity:.7}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1 1 200px;min-width:0}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{border:1px solid var(--line-strong);background:var(--panel);padding:4px 11px;border-radius:999px;font-size:.84rem;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tag{display:inline-block;font-size:.72rem;padding:1px 8px;border-radius:3px;background:var(--accent-soft);color:var(--accent);font-weight:600;white-space:nowrap}
+.tag.s{background:var(--signal-soft);color:var(--signal)}
+
+/* status pills */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-on{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.st-risk{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.st-off{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.v-go{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.v-cond{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.v-stop{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.verdict{padding:3px 10px;border-radius:3px;font-weight:600;font-size:.84rem;width:fit-content;white-space:nowrap}
+
+/* KPI strip */
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line-strong);background:var(--panel)}
+.strip>div{padding:14px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;min-width:0}
+.strip>div:last-child{border-right:0}
+.strip b{font-family:var(--f-display);font-size:2.1rem;line-height:1;font-variant-numeric:tabular-nums}
+.strip small{color:var(--muted);font-size:.8rem}
+.rag{display:flex;height:8px;width:100%;background:var(--line);overflow:hidden;border-radius:2px}
+.rag i{display:block;height:100%}
+@media (max-width:760px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}.strip>div:nth-child(2){border-right:0}.strip>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+
+/* board */
+.boardwrap{overflow-x:auto;border:1px solid var(--line-strong);background:var(--panel)}
+.board{display:grid;grid-template-columns:repeat(5,minmax(200px,1fr));min-width:1000px}
+.col{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;position:relative}
+.col:last-child{border-right:0}
+.colhead{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:2px;background:var(--bg);position:relative}
+.colhead .nm{font-family:var(--f-display);font-weight:700;font-size:1.2rem;display:flex;justify-content:space-between;align-items:baseline;padding-right:16px}
+.colhead .nm span{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);font-weight:500}
+.gate{position:absolute;right:-11px;top:50%;z-index:2;font-family:var(--f-mono);font-size:.6rem;background:var(--signal);color:#fff;width:22px;height:22px;display:grid;place-items:center;transform:translateY(-50%) rotate(45deg)}
+.gate b{transform:rotate(-45deg);font-weight:500}
+.cards{display:flex;flex-direction:column;gap:8px;padding:10px;min-height:120px}
+.card{appearance:none;text-align:left;border:1px solid var(--line);border-left:4px solid var(--line-strong);background:var(--panel);padding:10px 10px 10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:6px;width:100%}
+.card:hover{border-top-color:var(--accent);border-right-color:var(--accent);border-bottom-color:var(--accent)}
+.card.st-on-b{border-left-color:var(--good)}
+.card.st-risk-b{border-left-color:var(--warn)}
+.card.st-off-b{border-left-color:var(--bad)}
+.card .cn{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.15}
+.card .meta{display:flex;justify-content:space-between;gap:6px;font-family:var(--f-mono);font-size:.7rem;color:var(--muted);flex-wrap:wrap}
+.meter{height:5px;background:var(--line);position:relative;border-radius:2px;overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+.meter.gap i{background:var(--warn)}
+.colempty{font-size:.8rem;color:var(--muted);padding:6px 2px}
+
+/* tables */
+.tablewrap{overflow-x:auto;border:1px solid var(--line-strong);background:var(--panel)}
+table{border-collapse:collapse;width:100%}
+.reg{min-width:1120px}
+.kpit{min-width:860px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+thead th{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--bg);white-space:nowrap}
+thead th button{all:unset;cursor:pointer}
+thead th button:hover{color:var(--ink)}
+tbody tr:last-child td{border-bottom:0}
+tr.pick{cursor:pointer}
+tr.pick:hover td{background:var(--accent-soft)}
+td.nm{font-family:var(--f-display);font-weight:700;font-size:1.05rem;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.reg td.mono{white-space:nowrap}
+.bad{color:var(--bad)} .good{color:var(--good)} .warn{color:var(--warn)}
+
+/* feed */
+.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);background:var(--panel)}
+.feed li{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:.9rem}
+.feed li:last-child{border-bottom:0}
+.feed time{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);padding-top:2px}
+.feed .who{color:var(--muted);font-size:.8rem}
+.feed button.co{all:unset;cursor:pointer;font-weight:600;color:var(--accent)}
+@media (max-width:520px){.feed li{grid-template-columns:1fr;gap:2px}}
+
+/* empty */
+.empty{border:1.5px dashed var(--line-strong);background:var(--panel);padding:28px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+
+/* panels & forms */
+.panel{background:var(--panel);border:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.form .wide{grid-column:1/-1}
+.form .half{grid-column:span 2}
+@media (max-width:760px){.form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){.form{grid-template-columns:1fr}.form .half{grid-column:auto}}
+
+/* company header */
+.cohead{display:flex;flex-direction:column;gap:10px}
+.cohead .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.cohead h1{font-size:clamp(1.9rem,4.5vw,2.7rem)}
+.signals{display:flex;gap:8px;flex-wrap:wrap}
+
+/* phase track */
+.track{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line-strong);background:var(--panel)}
+.stage{appearance:none;border:0;background:transparent;text-align:left;padding:12px 14px 14px;cursor:pointer;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--line);position:relative;min-width:0}
+.stage:last-child{border-right:0}
+.stage .num{font-family:var(--f-mono);font-size:.7rem;color:var(--muted)}
+.stage .nm{font-family:var(--f-display);font-weight:700;font-size:1.2rem}
+.stage .tg{font-family:var(--f-mono);font-size:.68rem;color:var(--muted)}
+.stage:hover:not(:disabled){background:var(--accent-soft)}
+.stage.done{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.stage[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.stage[aria-pressed="true"] .num,.stage[aria-pressed="true"] .tg{color:var(--on-accent);opacity:.85}
+.stage:disabled{cursor:default}
+@media (max-width:760px){.track{grid-template-columns:1fr}.stage{border-right:0;border-bottom:1px solid var(--line)}.stage:last-child{border-bottom:0}.stage .gate,.colhead .gate{right:auto;left:14px;top:auto;bottom:-11px;transform:rotate(45deg)}}
+
+/* readiness */
+.ready{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.ready{grid-template-columns:1fr}}
+.sliders{display:flex;flex-direction:column;gap:12px}
+.sl{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px;gap:10px;align-items:center}
+.sl label{font-size:.9rem;font-weight:500}
+.sl label small{display:block;font-weight:400;color:var(--muted);font-size:.76rem}
+.sl input[type=range]{width:100%;accent-color:var(--accent)}
+.sl output{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;font-size:.85rem}
+.sl output.gap{color:var(--bad)}
+.score{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end}
+.score div{display:flex;flex-direction:column}
+.score b{font-family:var(--f-display);font-size:2rem;font-variant-numeric:tabular-nums;line-height:1}
+.gaps{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.gaps li{border-left:3px solid var(--bad);padding:4px 10px;font-size:.88rem;background:var(--bg)}
+.gaps li span{color:var(--muted)}
+svg text{font-family:var(--f-mono)}
+
+/* gates */
+.gates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.gates{grid-template-columns:1fr}}
+.gatecard{background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.gatecard.next{border:1.5px solid var(--signal)}
+.gatecard.passed{opacity:.8}
+.gatecard header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.gatecard header .g{font-family:var(--f-mono);font-size:.74rem;background:var(--signal);color:#fff;padding:2px 7px}
+.gatecard .prog{font-family:var(--f-mono);font-size:.76rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.gatecard ul{list-style:none;margin:0;padding:10px 16px 6px;display:flex;flex-direction:column;gap:6px}
+.gatecard li{display:flex;gap:6px;align-items:flex-start}
+.gatecard label{display:flex;gap:9px;align-items:flex-start;font-size:.88rem;cursor:pointer;flex:1;min-width:0}
+.gatecard input[type=checkbox]{accent-color:var(--accent);margin-top:4px;flex:none}
+.gatecard .kind{font-family:var(--f-mono);font-size:.6rem;color:var(--muted);letter-spacing:.06em;margin-left:auto;padding-top:3px;flex:none;text-align:right}
+.gatecard li.sx .kind{color:var(--signal)}
+.gatecard li.cu .kind{color:var(--accent)}
+.gatecard .x{all:unset;cursor:pointer;color:var(--muted);font-size:.9rem;padding:0 4px;line-height:1.6}
+.gatecard .x:hover{color:var(--bad)}
+.gatecard form{display:flex;gap:6px;padding:6px 16px 14px;flex-wrap:wrap}
+.gatecard form input{flex:1 1 160px;width:auto}
+.gatecard form select{width:auto}
+
+/* actions */
+.acts{list-style:none;margin:0;padding:0;border:1px solid var(--line);background:var(--panel)}
+.acts li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.acts li:last-child{border-bottom:0}
+.acts li.done .t{text-decoration:line-through;color:var(--muted)}
+.acts .t{font-size:.92rem}
+.acts .sub{font-family:var(--f-mono);font-size:.7rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.acts .sub .od{color:var(--bad);font-weight:500}
+.acts input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+
+.spark{display:block;width:100%;max-width:140px;height:30px}
+.kpit td input[type=number]{width:90px}
+.kpit .logrow{display:flex;gap:6px;align-items:center}
+.kpit .logrow input[type=date]{width:140px}
+
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.88rem}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:.88rem;z-index:20;max-width:calc(100% - 32px)}
+footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;max-width:85ch;display:flex;flex-direction:column;gap:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.handover{border:1.5px solid var(--accent);background:var(--accent-soft);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.handover b{font-family:var(--f-display);font-size:1.1rem}
+</style>
+
+<div class="wrap" id="app">
+  <header class="head">
+    <div class="intro">
+      <span class="label">Corporate venture · company foundation · built on VCF-FND-01</span>
+      <h1>Venture Foundation Cockpit</h1>
+      <p class="lede">Where each new venture stands on the idea-to-company path: its phase, founding model, readiness against the next gate, gate criteria met, early KPIs and open actions. Ventures that pass G4 hand over to the Portfolio Industrialization Cockpit.</p>
+    </div>
+    <div class="tblock" aria-label="Document details">
+      <div><span>Doc no.</span>VCF-FND-02</div>
+      <div><span>Framework</span>VCF-FND-01 rev A</div>
+      <div><span>Ventures</span><b id="tbCount">—</b></div>
+      <div><span>Last change</span><b id="tbLast">—</b></div>
+      <div><span>Data</span><span class="live" id="live" style="display:inline-flex;font-size:.74rem;letter-spacing:0;text-transform:none;color:inherit"><i></i><b id="liveTxt">Connecting…</b></span></div>
+      <div><span>Access</span><b id="tbAccess">—</b></div>
+    </div>
+  </header>
+
+  <div id="banner" hidden></div>
+  <main id="view"></main>
+
+  <footer>
+    <p>Phases, gates, gate targets, founding models, sector must-haves and tool references follow the Idea-to-Company Toolbox (VCF-FND-01). Readiness is scored 1 (assumption only) to 5 (proven and repeatable) against the target for the venture's next gate. Stakes and budgets are indicative starting points from the framework.</p>
+    <p>Changes save as you make them and appear for everyone with the page open. After G4 a venture moves into the Prove phase of the <a href="https://claude.ai/artifact/HXfnY8oU188JDzv2T9FWnR" target="_blank" rel="noopener">Portfolio Industrialization Cockpit</a>.</p>
+  </footer>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+// Framework data from VCF-FND-01 (Idea-to-Company Toolbox rev A)
+const D={"PHASES": [{"n": "Explore", "q": "Is there a problem worth a company?", "obj": "Turn a thesis or corporate pain point into a quantified, external problem worth solving.", "act": "Frame the thesis; mine MAN/TRATON pain points; 20+ customer discovery interviews; bottom-up market sizing; competitor and substitute map.", "dlv": "Opportunity brief; quantified problem statement; interview log; internal sponsor named.", "dur": "4–8 weeks", "bud": "€10–50k (team time, travel, research)", "gate": "G1"}, {"n": "Validate", "q": "Will customers pay, and can it be built?", "obj": "De-risk demand, feasibility and economics before any company is set up.", "act": "Value-proposition tests; LOIs, smoke tests or paid pilots; technical feasibility sprint on the core risk; unit-economics model; build / partner / buy / spin-off decision; founder search.", "dlv": "Validated venture case; investment memo; chosen founding model; founder shortlist.", "dur": "8–16 weeks", "bud": "€50–250k", "gate": "G2"}, {"n": "Found", "q": "Is the company set up to succeed?", "obj": "Create an investable company: right founders, clean IP, fair terms and funded runway.", "act": "Founders' agreement and vesting; entity set-up; cap table and ESOP; IP licence or assignment; shareholder agreement; seed and grant close; board set-up.", "dlv": "Incorporated company; signed SHA and IP licence; ≥18 months runway; board and reporting cadence.", "dur": "8–12 weeks", "bud": "Seed round, typically €0.5–3m (indicative)", "gate": "G3"}, {"n": "Build", "q": "Does the MVP create value for paying customers?", "obj": "Ship the MVP into real customer use and prove the first revenue.", "act": "MVP scope and 90-day build plans; pilot agreements with business units and external customers; first 10 hires; traction dashboard; monthly KPI pack.", "dlv": "MVP in customer use; first paying customers; KPI pack; hiring plan executed.", "dur": "6–12 months", "bud": "From seed", "gate": "G4"}, {"n": "Traction", "q": "Is demand repeatable and scalable?", "obj": "Show repeatable pull and prepare the next round and industrialization.", "act": "Repeatable sales motion; pricing; retention analysis; Series A preparation; industrialization plan using the Pilot-to-Series toolbox.", "dlv": "Series A data room; Pilot-to-Series G1 readiness; board-approved scale plan.", "dur": "6–18 months", "bud": "From seed / bridge; Series A", "gate": "→ Pilot-to-Series"}], "GATES": [{"g": "G1", "n": "Opportunity confirmed", "q": "Is the problem real, big and ours to solve?", "dec": "Release validation budget and team", "who": "CVC investment team + business-unit sponsor"}, {"g": "G2", "n": "Venture case approved", "q": "Should we found a company, and in which model?", "dec": "Pre-approval to found; founding model and budget", "who": "Investment committee"}, {"g": "G3", "n": "Company operational", "q": "Is the company set up and funded to build?", "dec": "Final investment approval; seed signed", "who": "Investment committee"}, {"g": "G4", "n": "Product-market signal", "q": "Is there repeatable pull and a path to scale?", "dec": "Follow-on decision; hand over to Pilot-to-Series toolbox", "who": "Company board + investment committee"}], "MODELS": [["Corporate spin-off", "Team, IP or product leaves MAN/TRATON into a new entity", "Asset or team exists inside the group but needs speed, outside capital or other customers", "Minority 20–49%", "Fast start; assets and customers from day one", "Parent dependence; IP and transfer-pricing negotiation; founder incentives"], ["Co-founded venture (EIR)", "Investor frames the opportunity and recruits external founders or entrepreneurs-in-residence", "Validated problem, no internal team to run it", "Minority 10–30%", "Entrepreneurial team; clean cap table", "Founder search takes time; founder-market fit risk"], ["Research spin-off", "Licence from university or research institute with scientist founders", "Deep-tech result with an application MAN/TRATON needs", "Minority 5–20%", "Unique IP; non-dilutive funding available", "Long time to revenue; tech-transfer terms"], ["Joint venture", "New entity with a partner corporate or scale-up", "Both sides bring an essential asset (market, technology, infrastructure)", "Often 50/50 or majority", "Shared risk; combined assets", "Slow governance; exit complexity"], ["Venture client first", "Buy the startup's product first, invest later", "External startup already exists; fit unproven", "None at first; option to invest", "Low risk; real usage data before investing", "Weaker influence; competitors may invest first"]], "DIMS": ["Problem & customer", "Solution & technology", "Market & competition", "Business model & unit economics", "Founding team", "Legal, structure & IP", "Funding & runway", "Corporate fit & access"], "TARGETS": [[3, 4, 4, 5], [2, 3, 3, 4], [3, 3, 4, 4], [1, 3, 3, 4], [2, 3, 4, 4], [1, 2, 4, 4], [1, 2, 4, 4], [2, 3, 4, 4]], "LEVERS": [["L1", "Problem & thesis access", "Validated operator pain across MAN/TRATON service, production and fleet customers; sector thesis from the CVC team", "Addressable pain", "HHMLL", "Validated problem statements; days to first 20 interviews", "Solving an internal problem too narrow for an external market"], ["L2", "Customer & pilot access", "Introductions to fleets, dealers and business units; fast pilots and LOIs", "Right to win", "MHMHH", "LOIs; pilots started; pilot-to-paid conversion", "Pilot purgatory; dependence on one corporate customer"], ["L3", "Founding talent", "Founder matching, entrepreneurs-in-residence, secondments, recruiting network", "Team strength", "LMHHM", "Key roles filled; time to hire", "Seconded staff without equity or long-term commitment"], ["L4", "Structure & governance", "Standard entity set-up, term sheets, IP licences and fair shareholder rights", "Time & risk to product-market fit", "LMHMM", "Days to incorporation; terms at market standard", "Heavy corporate rights (ROFR, exclusivity, vetoes) that deter later investors"], ["L5", "Capital & funding", "Pre-seed and seed cheques, co-investor network, grant writing support", "Capital efficiency", "LMHMH", "Runway months; non-dilutive € raised; dilution at seed", "Over-funding before product-market fit"], ["L6", "Assets, data & infrastructure", "Test trucks, labs, plants, depots and data sets", "Capital efficiency", "MHMHM", "Capex avoided; days to first test", "Asset terms that later block independence or exit"], ["L7", "Brand & route to market", "TRATON credibility, procurement fast lane, dealer and sales channels", "Right to win", "LLMHH", "Revenue via TRATON channels; vendor onboarding days", "Channel conflict; seen by others as a captive supplier"]], "SECTORS": ["Energy & infrastructure", "Deep tech", "Asset management & circularity", "Autonomous & supply chain", "AI"], "LEVER_SECTOR": {"Energy & infrastructure": "MHMHHHH", "Deep tech": "HMHHHHL", "Asset management & circularity": "HHMMMHH", "Autonomous & supply chain": "MHHMMHM", "AI": "HHHHMHM"}, "TOOLS": [{"id": "T01", "n": "Opportunity thesis canvas", "p": "Frames problem, customer, why now, why us and kill criteria on one page", "ph": "Explore", "g": "G1", "lv": "L1", "dim": "Problem & customer", "out": "One-page thesis", "eff": "S", "sec": null}, {"id": "T02", "n": "Corporate pain-point mining", "p": "Structured interviews with MAN/TRATON service, production and sales to find costly, recurring problems", "ph": "Explore", "g": "G1", "lv": "L1", "dim": "Problem & customer", "out": "Ranked problem backlog", "eff": "M", "sec": null}, {"id": "T03", "n": "Customer discovery interview kit", "p": "Script, sampling plan and log for 20+ interviews, at least half outside the group", "ph": "Explore / Validate", "g": "G1", "lv": "L2", "dim": "Problem & customer", "out": "Interview log and insight summary", "eff": "M", "sec": null}, {"id": "T04", "n": "Value proposition canvas", "p": "Maps jobs, pains and gains to features; defines what to test", "ph": "Validate", "g": "G2", "lv": "L2", "dim": "Solution & technology", "out": "Value proposition and test plan", "eff": "S", "sec": null}, {"id": "T05", "n": "Bottom-up market sizing", "p": "TAM/SAM/SOM from customer counts and price points, not top-down reports", "ph": "Explore / Validate", "g": "G1", "lv": "L1", "dim": "Market & competition", "out": "Sizing model", "eff": "S", "sec": null}, {"id": "T06", "n": "Competitor & substitute map", "p": "Maps direct competitors, substitutes and do-nothing options by customer segment", "ph": "Explore", "g": "G1", "lv": "L1", "dim": "Market & competition", "out": "Landscape map", "eff": "S", "sec": null}, {"id": "T07", "n": "LOI & smoke-test campaign", "p": "Tests willingness to pay with LOIs, pre-orders, landing pages or paid pilots", "ph": "Validate", "g": "G2", "lv": "L2", "dim": "Problem & customer", "out": "Signed LOIs; conversion data", "eff": "M", "sec": null}, {"id": "T08", "n": "Technical feasibility sprint", "p": "Time-boxed test of the single biggest technical risk; TRL check", "ph": "Validate", "g": "G2", "lv": "L6", "dim": "Solution & technology", "out": "Feasibility report", "eff": "M", "sec": null}, {"id": "T09", "n": "Unit-economics model", "p": "Contribution margin per unit, CAC, payback and path to positive margin", "ph": "Validate", "g": "G2", "lv": "L5", "dim": "Business model & unit economics", "out": "Unit-economics workbook", "eff": "M", "sec": null}, {"id": "T10", "n": "Build / partner / buy / spin-off matrix", "p": "Chooses the founding model against speed, control, capital and talent criteria", "ph": "Validate", "g": "G2", "lv": "L4", "dim": "Corporate fit & access", "out": "Founding-model decision", "eff": "S", "sec": null}, {"id": "T11", "n": "Investment memo template", "p": "Standard venture case for the investment committee", "ph": "Validate", "g": "G2", "lv": "L5", "dim": "Funding & runway", "out": "Investment memo", "eff": "M", "sec": null}, {"id": "T12", "n": "Founder-market fit & founder matching", "p": "Scorecard and EIR/founder search process; reference checks", "ph": "Validate / Found", "g": "G2", "lv": "L3", "dim": "Founding team", "out": "Founder scorecard and shortlist", "eff": "L", "sec": null}, {"id": "T13", "n": "Founders' agreement & vesting", "p": "Roles, time commitment, 4-year vesting with 1-year cliff, good/bad leaver", "ph": "Found", "g": "G3", "lv": "L4", "dim": "Founding team", "out": "Signed founders' agreement", "eff": "S", "sec": null}, {"id": "T14", "n": "Entity set-up checklist", "p": "Jurisdiction, legal form, registrations, bank, tax, insurance", "ph": "Found", "g": "G3", "lv": "L4", "dim": "Legal, structure & IP", "out": "Incorporated entity", "eff": "M", "sec": null}, {"id": "T15", "n": "Cap table & ESOP model", "p": "Pre-seed and seed dilution, ESOP pool sizing, corporate stake scenarios", "ph": "Found", "g": "G3", "lv": "L5", "dim": "Funding & runway", "out": "Cap table model", "eff": "S", "sec": null}, {"id": "T16", "n": "IP licence or assignment", "p": "Transfers background IP from MAN/TRATON or institutions on arm's-length terms", "ph": "Found", "g": "G3", "lv": "L4", "dim": "Legal, structure & IP", "out": "Signed IP agreement", "eff": "L", "sec": null}, {"id": "T17", "n": "Corporate shareholder rights playbook", "p": "Market-standard board seat, information and pre-emption rights; rules on ROFR and exclusivity", "ph": "Found", "g": "G3", "lv": "L4", "dim": "Corporate fit & access", "out": "Term sheet and SHA positions", "eff": "M", "sec": null}, {"id": "T18", "n": "Seed & grant funding map", "p": "Co-investor list, grant programmes and timeline to close", "ph": "Found", "g": "G3", "lv": "L5", "dim": "Funding & runway", "out": "Funding plan", "eff": "M", "sec": null}, {"id": "T19", "n": "MVP scope & 90-day build plan", "p": "Defines the smallest product that tests the value proposition with paying users", "ph": "Build", "g": "G4", "lv": "L6", "dim": "Solution & technology", "out": "MVP backlog and plan", "eff": "M", "sec": null}, {"id": "T20", "n": "Business-unit pilot agreement", "p": "Sponsor, scope, success criteria, data access and path to purchase order", "ph": "Validate / Build", "g": "G4", "lv": "L2", "dim": "Corporate fit & access", "out": "Signed pilot agreement", "eff": "S", "sec": null}, {"id": "T21", "n": "First-10-hires plan", "p": "Hiring sequence, scorecards and equity bands for the first team", "ph": "Build", "g": "G4", "lv": "L3", "dim": "Founding team", "out": "Hiring plan", "eff": "S", "sec": null}, {"id": "T22", "n": "Traction dashboard", "p": "North-star metric, cohorts, pipeline and burn in one monthly view", "ph": "Build / Traction", "g": "G4", "lv": "L5", "dim": "Business model & unit economics", "out": "Monthly KPI pack", "eff": "S", "sec": null}, {"id": "T23", "n": "Board & governance cadence", "p": "Monthly KPI pack, quarterly board, decision log, conflict-of-interest rules", "ph": "Found / Build", "g": "G3", "lv": "L4", "dim": "Legal, structure & IP", "out": "Governance calendar", "eff": "S", "sec": null}, {"id": "T24", "n": "Procurement fast lane", "p": "Vendor onboarding, framework contract and payment terms for startups buying into the group", "ph": "Build", "g": "G4", "lv": "L7", "dim": "Corporate fit & access", "out": "Vendor set-up", "eff": "S", "sec": null}, {"id": "T25", "n": "Series A readiness & scale handover", "p": "Data room checklist and handover to the Pilot-to-Series toolbox (G1)", "ph": "Traction", "g": "G4", "lv": "L5", "dim": "Funding & runway", "out": "Data room; industrialization plan", "eff": "M", "sec": null}, {"id": "E1", "n": "Grid & site feasibility screen", "p": "Checks grid capacity, connection time, permits and site economics for a reference depot or corridor site", "ph": "Validate", "g": "G2", "lv": "L6", "dim": "Solution & technology", "out": "Site feasibility report", "eff": "M", "sec": ["Energy & infrastructure"]}, {"id": "E2", "n": "Energy regulation & tariff map", "p": "AFIR, EU Battery Regulation, grid codes, tariffs and national permits relevant to the model", "ph": "Validate / Found", "g": "G3", "lv": "L4", "dim": "Legal, structure & IP", "out": "Regulatory map", "eff": "S", "sec": ["Energy & infrastructure"]}, {"id": "E3", "n": "Asset-financing structure", "p": "OpCo / asset SPV split, leasing or project finance next to equity", "ph": "Found", "g": "G3", "lv": "L5", "dim": "Funding & runway", "out": "Financing structure", "eff": "L", "sec": ["Energy & infrastructure"]}, {"id": "D1", "n": "TRL / MRL roadmap", "p": "Milestones from proof of principle to manufacturable product, with cost per step", "ph": "Validate / Build", "g": "G2", "lv": "L6", "dim": "Solution & technology", "out": "TRL roadmap", "eff": "M", "sec": ["Deep tech"]}, {"id": "D2", "n": "Tech-transfer licence negotiation", "p": "Licence terms with universities or corporate R&D: field of use, royalties, equity", "ph": "Found", "g": "G3", "lv": "L4", "dim": "Legal, structure & IP", "out": "Signed licence", "eff": "L", "sec": ["Deep tech"]}, {"id": "D3", "n": "Non-dilutive funding stack", "p": "EIC Accelerator, Horizon Europe and national innovation grants aligned to TRL steps", "ph": "Found", "g": "G3", "lv": "L5", "dim": "Funding & runway", "out": "Grant plan", "eff": "M", "sec": ["Deep tech"]}, {"id": "C1", "n": "Reverse-logistics & feedstock model", "p": "Volumes, collection cost and quality of returned assets, with offtakers for recovered output", "ph": "Validate", "g": "G2", "lv": "L6", "dim": "Market & competition", "out": "Feedstock and offtake model", "eff": "M", "sec": ["Asset management & circularity"]}, {"id": "C2", "n": "LCA & CO2 claim check", "p": "Life-cycle assessment and claim wording that holds under CSRD and green-claims rules", "ph": "Explore / Validate", "g": "G1", "lv": "L1", "dim": "Problem & customer", "out": "LCA summary", "eff": "M", "sec": ["Asset management & circularity"]}, {"id": "C3", "n": "Residual-value & asset data model", "p": "Links asset condition data to resale, reuse or remanufacturing value", "ph": "Validate", "g": "G2", "lv": "L6", "dim": "Solution & technology", "out": "Residual-value model", "eff": "M", "sec": ["Asset management & circularity"]}, {"id": "A1", "n": "Safety case & homologation path", "p": "ISO 26262, ISO 21448 (SOTIF), UNECE R155/R156 and national AV approval route", "ph": "Found", "g": "G3", "lv": "L4", "dim": "Legal, structure & IP", "out": "Safety plan", "eff": "L", "sec": ["Autonomous & supply chain"]}, {"id": "A2", "n": "ODD & pilot route plan", "p": "Operational design domain, lanes or yards, supervision and success metrics", "ph": "Validate", "g": "G2", "lv": "L6", "dim": "Solution & technology", "out": "ODD and route plan", "eff": "M", "sec": ["Autonomous & supply chain"]}, {"id": "A3", "n": "Fleet & TMS data agreement", "p": "Data sharing, integration and liability terms with fleets, shippers or TMS providers", "ph": "Found / Build", "g": "G3", "lv": "L2", "dim": "Corporate fit & access", "out": "Signed data agreement", "eff": "M", "sec": ["Autonomous & supply chain"]}, {"id": "AI1", "n": "Data access & rights audit", "p": "Which MAN/TRATON and customer data can be used, on what terms, and how to licence it", "ph": "Validate / Found", "g": "G3", "lv": "L6", "dim": "Corporate fit & access", "out": "Data rights register", "eff": "M", "sec": ["AI"]}, {"id": "AI2", "n": "EU AI Act classification", "p": "Risk class, obligations and governance set-up for the use case", "ph": "Found", "g": "G3", "lv": "L4", "dim": "Legal, structure & IP", "out": "AI Act assessment", "eff": "S", "sec": ["AI"]}, {"id": "AI3", "n": "Model evaluation & inference economics", "p": "Accuracy vs current process and inference cost per unit sold", "ph": "Validate / Build", "g": "G2", "lv": "L6", "dim": "Solution & technology", "out": "Evaluation report and cost model", "eff": "M", "sec": ["AI"]}], "SECTOR": {"Energy & infrastructure": {"short": "Energy & infra", "arch": "Asset-heavy energy venture", "means": "Founding a company that owns, operates or supplies energy for eTrucks: depot and corridor charging, battery and energy-management products. Assets and grid access shape the company as much as the product.", "model": "Co-founded venture with an asset SPV; MAN as anchor customer or channel", "risks": "Grid-connection delays; capex before revenue; utilisation below plan", "hires": "Energy project developer; power-electronics engineer; commercial lead for fleets", "reg": "AFIR; EU Battery Regulation; grid codes; IEC 61851 / ISO 15118; national permitting", "kpi": "Site pipeline (MW); utilisation %; uptime %; margin per kWh; LOIs", "fund": "Seed VC plus infrastructure funds; CEF / AFIF; national charging grants; green loans", "fail": "Building sites before grid capacity or anchor-fleet demand is secured", "mat": ["Problem & site hypothesis", "Feasibility · TRL 4–5", "Company + first-site plan", "Pilot sites · TRL 6–7", "Repeatable rollout"], "ph": ["A quantified energy cost, uptime or grid-access pain for eTruck fleets or depots, with a clear MAN/TRATON angle.", "Technical and grid feasibility for a reference depot or product; fleet customers sign LOIs; the revenue model (hardware, charging-as-a-service, kWh margin) holds at site level.", "An entity able to own or finance assets (OpCo / SPV split where needed); founders with energy-project and hardware experience; seed plus grant or project-finance route.", "First sites or units live with paying fleets; uptime, utilisation and cost per kWh measured against the business case.", "Standard site design and installation partners allow repeatable rollout; site pipeline and bundling with MAN eTruck sales."], "must": ["Pain quantified with ≥5 fleet or depot operators (€/kWh, downtime, grid wait)", "Grid feasibility confirmed for a reference site; ≥2 fleet LOIs", "Asset-financing route agreed (SPV, lease or project finance) next to equity seed", "≥3 live sites or units at ≥95% uptime; unit economics within 20% of plan"], "dims": ["Fleet energy pain", "Hardware / energy-tech feasibility", "Site pipeline & market", "Site-level unit economics", "Energy & hardware founders", "Entity, permits & IP", "Equity + asset finance", "eTruck & charging fit"], "gap": ["T03", "E1", "T05", "T09", "T12", "E2", "E3", "T20"]}, "Deep tech": {"short": "Deep tech", "arch": "Research spin-off", "means": "Founding a company around a research result or corporate R&D asset. The work is turning a technology into an application with a paying customer, and moving IP cleanly into the company.", "model": "University or corporate R&D spin-off with licence; investor helps recruit a commercial CEO", "risks": "IP ownership disputes; long time to revenue; science-led team without a commercial owner", "hires": "Commercial CEO; systems / application engineer; IP counsel", "reg": "Tech-transfer rules; export controls (dual-use); freedom to operate", "kpi": "TRL progression; design partners; grant € secured; burn per TRL step", "fund": "EIC Accelerator; Horizon Europe; national innovation agencies; deep-tech seed funds", "fail": "Technology push with no customer cost of problem; IP not cleanly transferred", "mat": ["Research result", "TRL 3–4 · proof of principle", "Spin-off / licence", "TRL 5–6 · prototype with users", "TRL 7 · lab-to-fab plan"], "ph": ["A research result or R&D asset that solves a named, costly problem, not a technology looking for one.", "Proof of principle outside the lab; a first application with a paying use case; IP position and freedom to operate understood.", "Clean IP transfer (licence or assignment); a commercial CEO next to the scientific founder; non-dilutive funding secured.", "Prototype working in a customer environment (TRL 5–6); design partners co-developing; roadmap to manufacturing readiness defined.", "Credible lab-to-fab and cost-down plan; first commercial orders; ready for the Pilot-to-Series Prove phase."], "must": ["Named application with a customer cost of problem, not only a performance claim", "Proof of principle reproduced outside the originating lab; FTO review started", "IP licence or assignment signed; commercial CEO in place", "TRL 6 shown with ≥2 design partners; lab-to-fab cost roadmap"], "dims": ["Application pain", "Technology readiness (TRL)", "Application market", "Cost-down path", "Science + commercial founders", "IP ownership & FTO", "Non-dilutive + seed funding", "R&D & application fit"], "gap": ["T03", "D1", "T05", "T09", "T12", "D2", "D3", "T10"]}, "Asset management & circularity": {"short": "Asset mgmt & circ.", "arch": "Operations & data loop venture", "means": "Founding a company that recovers value from trucks, batteries, parts or idle assets. Access to feedstock and asset data decides the business, so it must be secured contractually from the start.", "model": "Carve-out or co-founded venture with a dealer or aftersales anchor", "risks": "Feedstock volatility; thin margin per unit; permit delays; quality of returned assets", "hires": "Operations / remanufacturing lead; reverse-logistics lead; asset-data engineer", "reg": "EU Battery Regulation (second life, battery passport); Waste Framework Directive; ELV rules; CSRD and green-claims rules", "kpi": "Recovery rate %; margin per unit; feedstock under contract; tCO2 avoided", "fund": "Impact and climate VC; EU Innovation Fund; LIFE programme; dealer partnerships", "fail": "Economics depend on subsidies or on feedstock that is not under contract", "mat": ["Value-loss hypothesis", "Material & residual-value test", "Company + feedstock access", "Pilot loop running", "Repeatable loop at volume"], "ph": ["A measurable value loss (end-of-life trucks, batteries, parts, idle assets) that MAN, dealers or fleets want solved.", "Feedstock or asset access at a known cost; recovered value and CO2 benefit verified; buyers for recovered output identified.", "Contracts or MoUs securing feedstock and data from MAN/TRATON or dealers; founders with operations experience; permits mapped.", "A pilot loop (collect → assess → reuse, remanufacture or resell) runs with real assets; margin per unit and yields measured.", "The loop repeats across sites or markets; residual-value data becomes a product; LCA-backed claims support sales."], "must": ["Value loss quantified per asset (€ and tCO2) with a MAN, dealer or fleet sponsor", "Feedstock availability and cost confirmed; offtaker for recovered output identified", "Feedstock / data access agreement signed; waste and trade permits mapped", "Pilot loop meets target recovery rate with positive contribution margin per unit"], "dims": ["Value-loss problem", "Recovery process feasibility", "Feedstock & offtake market", "Margin per recovered unit", "Operations founders", "Permits, contracts & IP", "Seed & impact funding", "Aftersales & dealer fit"], "gap": ["C2", "C3", "C1", "T09", "T12", "T14", "T18", "T20"]}, "Autonomous & supply chain": {"short": "Autonomous & SC", "arch": "Autonomy & logistics software venture", "means": "Founding a company that removes a logistics bottleneck with autonomy, software or new operating models. Safety, liability and integration with fleets decide how fast it can sell.", "model": "Co-founded venture or JV with a fleet or logistics partner; venture-client pilots", "risks": "Safety incident; regulatory change; long pilots without conversion; integration cost", "hires": "Safety / validation lead; logistics operations lead; integration engineer", "reg": "ISO 26262; ISO 21448 (SOTIF); UNECE R155 / R156; EU ADS type approval (Reg. 2022/1426); national AV laws", "kpi": "Pilot lanes; availability %; safety events; cost per km; pilot conversion", "fund": "Mobility and deep-tech VC; national AV programmes; strategic co-investors", "fail": "Pilot purgatory: pilots never convert because the ODD or cost per km does not match shipper needs", "mat": ["Operational pain hypothesis", "ODD & feasibility defined", "Company + safety plan", "Supervised pilot routes", "Commercial operations"], "ph": ["A logistics bottleneck (driver shortage, hub dwell time, yard moves, visibility) with a clear cost per shipment or per hour.", "A defined operational design domain and route where the solution works; shipper or carrier LOIs; safety and regulatory path mapped.", "Founders combining autonomy or software with logistics operations; safety-case owner named; data and integration terms agreed.", "Supervised pilot routes or sites with paying shippers; safety KPIs, availability and cost per km tracked.", "Repeatable lanes or sites; homologation and insurance in place; integration with the MAN/TRATON vehicle platform."], "must": ["Cost per shipment or hour quantified with ≥3 shippers, carriers or hubs", "ODD and pilot route defined; regulatory path mapped", "Safety-case owner appointed; data and integration agreement with a fleet or TMS partner", "Supervised pilot with zero safety-critical incidents; cost per km within plan"], "dims": ["Operational bottleneck", "Autonomy / software feasibility", "Lanes, hubs & shippers", "Cost per km / shipment", "Autonomy + ops founders", "Safety, liability & IP", "Seed & venture funding", "Vehicle platform fit"], "gap": ["T03", "A2", "T05", "T09", "T12", "A1", "T18", "A3"]}, "AI": {"short": "AI", "arch": "Data & software venture", "means": "Founding a company around a data-driven product for diagnostics, quality, dispatch or service. Data rights, model performance and inference cost decide whether it becomes a scalable software business.", "model": "Spin-off with a data licence, or venture-client model before investing", "risks": "Unclear data rights; dependence on one corporate customer; inference costs eat margin", "hires": "ML lead; domain product manager; customer success", "reg": "EU AI Act; GDPR; EU Data Act; data licence and trade-secret terms", "kpi": "Accuracy vs baseline; weekly active users; ARR; gross margin; inference cost per unit", "fund": "Seed VC; national and EU AI programmes; venture-client revenue", "fail": "Built for one corporate customer and cannot be sold elsewhere because of data or exclusivity terms", "mat": ["Use-case hypothesis", "Data & model feasibility", "Company + data rights", "Design-partner deployments", "Repeatable SaaS revenue"], "ph": ["A frequent decision or workflow (diagnostics, quality, dispatch, service) where AI changes cost or revenue, with owners who feel the pain.", "Enough rights-cleared data to reach target accuracy; a baseline beats the current process; willingness to pay per seat, vehicle or outcome.", "Data licence from MAN/TRATON on arm's-length terms; ML and domain founders; EU AI Act classification done; seed closed.", "Deployed with design partners in real workflows; accuracy, adoption and inference cost per unit tracked.", "Repeatable sales beyond the first corporate customer; software-level gross margin; model governance in place."], "must": ["Workflow cost quantified with its owner; data sources identified", "Baseline model beats the current process on rights-cleared data", "Data licence signed; EU AI Act risk class and obligations documented", "≥2 paying design partners with weekly active use; gross margin ≥60% after inference"], "dims": ["Workflow pain", "Data & model performance", "Use-case market", "Pricing & inference economics", "ML + domain founders", "Data rights & AI Act", "Seed funding", "Data & workflow access"], "gap": ["T03", "AI3", "T06", "T09", "T12", "AI2", "T18", "AI1"]}}, "CHECKS": {"G1": [["Problem quantified (€ or hours lost per customer)", "Must"], ["≥20 discovery interviews logged, ≥10 outside MAN/TRATON", "Must"], ["Market sized bottom-up and above the agreed threshold", "Should"], ["Competitor and substitute map complete", "Should"], ["Strategic fit stated and business-unit sponsor named", "Must"], ["Budget and team for validation agreed", "Must"]], "G2": [["Willingness to pay shown (LOIs, pre-orders or paid pilots)", "Must"], ["Feasibility shown for the core technical risk", "Must"], ["Unit-economics model with a path to positive contribution margin", "Must"], ["Founding model chosen (spin-off, co-founded, JV, venture client)", "Must"], ["Founder candidates identified with founder-market fit", "Should"], ["Investment memo reviewed by the investment committee", "Must"]], "G3": [["Entity incorporated and registered", "Must"], ["Founders' agreement with vesting (4 years, 1-year cliff) signed", "Must"], ["IP licence or assignment signed; no open ownership claims", "Must"], ["Shareholder agreement with market-standard investor rights", "Must"], ["Seed closed; runway ≥18 months", "Must"], ["ESOP pool created (typically 10–15%)", "Should"], ["Board and reporting cadence agreed", "Should"]], "G4": [["MVP in use by ≥3 paying customers", "Must"], ["North-star metric growing for ≥3 consecutive months", "Must"], ["Retention or repeat use evidenced", "Should"], ["Unit economics within 20% of plan", "Must"], ["Key technical and commercial hires in place", "Should"], ["Follow-on round plan and Pilot-to-Series G1 plan prepared", "Must"]]}, "EX_CHECKS": {"G1": ["Yes", "Yes", "Yes", "Yes", "Yes", "Yes"], "G2": ["Yes", "Yes", "No", "Yes", "No", "No"], "G3": ["No", "No", "No", "No", "No", "No", "No"], "G4": ["No", "No", "No", "No", "No", "No"]}, "EX_SMUST": {"G1": "Yes", "G2": "Yes", "G3": "No", "G4": "No"}, "EX_SCORES": [4, 3, 3, 2, 3, 1, 2, 3]};
+
+const IND_URL="https://claude.ai/artifact/HXfnY8oU188JDzv2T9FWnR";
+const PHASES=D.PHASES,GATES=D.GATES,DIMS=D.DIMS,TOOLS=D.TOOLS,MODELS=D.MODELS;
+const SECTORS=D.SECTORS.map((n,i)=>({k:"s"+i,n,...D.SECTOR[n]}));
+const STATUS={on:["On track","st-on"],risk:["At risk","st-risk"],off:["Off track","st-off"]};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const SEC=k=>SECTORS.find(s=>s.k===k)||SECTORS[0];
+const gateOf=ph=>ph<4?GATES[ph].g:"Handover";
+const tgtIdx=ph=>Math.min(ph,3);
+const TARGET=ph=>D.TARGETS.map(t=>t[tgtIdx(ph)]);
+const live=o=>Object.entries(o||{}).filter(([,v])=>v&&!v.del);
+const toolById=id=>TOOLS.find(t=>t.id===id);
+function rel(iso){if(!iso)return"—";const s=(Date.now()-new Date(iso))/1000;if(s<60)return"just now";if(s<3600)return Math.floor(s/60)+" min ago";if(s<86400)return Math.floor(s/3600)+" h ago";if(s<86400*30)return Math.floor(s/86400)+" d ago";return new Date(iso).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}
+function fmtDate(d){if(!d)return"—";const x=new Date(d+"T00:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"2-digit"})}
+function daysTo(d){if(!d)return null;return Math.round((new Date(d+"T00:00:00")-new Date(today()+"T00:00:00"))/86400000)}
+function fmtNum(v){if(v===null||v===undefined||v==="")return"—";const n=+v;return Math.abs(n)>=1000?n.toLocaleString(undefined,{maximumFractionDigits:0}):n.toLocaleString(undefined,{maximumFractionDigits:2})}
+function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,3200)}
+const has=v=>v!==undefined&&v!==null&&v!=="";
+
+// ---------- derived metrics ----------
+function readiness(c){
+  const t=TARGET(c.phase||0),v=c.scores||DIMS.map(()=>1);
+  const gaps=DIMS.map((d,i)=>({i,gap:t[i]-(v[i]||1)})).filter(x=>x.gap>0).sort((a,b)=>b.gap-a.gap);
+  const total=gaps.reduce((a,x)=>a+x.gap,0),n=gaps.length,mx=n?gaps[0].gap:0;
+  const avg=v.reduce((a,b)=>a+(b||1),0)/v.length,tAvg=t.reduce((a,b)=>a+b,0)/t.length;
+  const g=gateOf(c.phase||0);
+  const verdict=n===0?["v-go","Ready for "+g]:(mx<=1&&n<=2)?["v-cond","Ready with action plan"]:["v-stop","Not ready for "+g];
+  return {t,v,gaps,total,avg,tAvg,verdict,met:8-n};
+}
+function gateItems(c,gi){
+  const g=GATES[gi],s=SEC(c.sector);
+  const items=D.CHECKS[g.g].map((x,j)=>({t:x[0],k:x[1],key:g.g+"-"+j,type:"core"}));
+  items.push({t:s.must[gi],k:"Must",key:g.g+"-sx-"+s.k,type:"sx"});
+  live(c.custom).filter(([,x])=>x.g===g.g).sort((a,b)=>(a[1].at||"").localeCompare(b[1].at||"")).forEach(([id,x])=>items.push({t:x.t,k:x.k,key:g.g+"-c-"+id,type:"cu",cid:id}));
+  return items;
+}
+function gateProgress(c,gi){
+  const items=gateItems(c,gi),tk=c.ticks||{};
+  const musts=items.filter(x=>x.k==="Must");
+  const done=items.filter(x=>tk[x.key]).length,mustDone=musts.filter(x=>tk[x.key]).length;
+  const v=mustDone<musts.length?["v-stop","Blocked"]:done===items.length?["v-go","Pass"]:["v-cond","Pass with action plan"];
+  return {items,done,total:items.length,mustDone,mustTotal:musts.length,v};
+}
+function kpiLatest(k){const h=Object.entries(k.hist||{}).filter(([,v])=>has(v)&&!isNaN(+v)).sort((a,b)=>a[0].localeCompare(b[0]));return {h,last:h.length?h[h.length-1]:null}}
+function kpiState(k){const {last}=kpiLatest(k);if(!last||!has(k.target)||isNaN(+k.target))return null;const v=+last[1],t=+k.target;return k.dir==="down"?v<=t:v>=t}
+function signals(c){
+  const acts=live(c.actions);
+  const overdue=acts.filter(([,a])=>!a.done&&a.due&&daysTo(a.due)<0).length,open=acts.filter(([,a])=>!a.done).length;
+  const kp=live(c.kpis).map(([,k])=>kpiState(k)).filter(x=>x!==null);
+  return {overdue,open,kpiOn:kp.filter(Boolean).length,kpiN:kp.length,runwayLow:has(c.runway)&&(c.phase||0)>=2&&+c.runway<9};
+}
+function dimLabel(i,sk){return [SEC(sk).dims[i],DIMS[i]]}
+
+// ---------- state ----------
+let db=null,user=null,me=null,canWrite=null,companies=new Map(),loaded=false;
+let view={co:null};
+let filt=store.get('venture-filter',{sec:"all",q:"",sort:"phase"});
+let names={},adding=false,confirmDel=false;
+
+// ---------- writes ----------
+const queues={};
+function logEntry(t){return {[uid()]:{at:new Date().toISOString(),by:me?.id||null,t}}}
+function write(id,patch,logText){
+  if(!db||canWrite===false){toast("You have view-only access to this tracker.");return Promise.resolve()}
+  patch.updatedAt=new Date().toISOString();patch.updatedBy=me?.id||null;
+  if(logText)patch.log=Object.assign(patch.log||{},logEntry(logText));
+  const cur=companies.get(id);if(cur)companies.set(id,deepMerge(structuredClone(cur),patch));
+  const ref=db.collection('ventures').doc(id);
+  queues[id]=(queues[id]||Promise.resolve()).then(()=>ref.update(patch)).catch(e=>handleWriteErr(e));
+  return queues[id];
+}
+function deepMerge(a,b){for(const k in b){if(b[k]&&typeof b[k]==="object"&&!Array.isArray(b[k])&&a[k]&&typeof a[k]==="object"&&!Array.isArray(a[k]))deepMerge(a[k],b[k]);else a[k]=b[k]}return a}
+function handleWriteErr(e){
+  const code=e&&e.code;
+  if(code==="invalid_argument"&&canWrite===null){canWrite=false;renderBanner();render.force=true;render();toast("Your access is view-only, so changes are not saved.");return}
+  if(code==="quota_exceeded"){toast("The tracker is full. Delete old ventures to make room.");return}
+  toast("Couldn't save that change ("+(code||"error")+"). Try again in a moment.");
+}
+
+// ---------- rendering ----------
+function render(){
+  const ae=document.activeElement;
+  if(ae&&$('view').contains(ae)&&ae.matches('input:not([type=checkbox]):not([type=button]),textarea,select')&&!render.force){render.pending=true;return}
+  render.force=false;render.pending=false;
+  renderTitleBlock();
+  if(view.co&&companies.has(view.co))renderCompany(companies.get(view.co));
+  else{view.co=null;renderPortfolio()}
+  resolveNames();
+}
+document.addEventListener('focusout',()=>setTimeout(()=>{if(render.pending)render()},0));
+function renderTitleBlock(){
+  $('tbCount').textContent=loaded?companies.size:"—";
+  const last=[...companies.values()].map(c=>c.updatedAt).filter(Boolean).sort().pop();
+  $('tbLast').textContent=last?rel(last):"—";
+}
+function renderBanner(){
+  const b=$('banner');
+  if(!db&&loaded){b.hidden=false;b.className="banner warn";b.innerHTML="<b>The shared tracker isn't reachable from this view.</b> Open the page on claude.ai while signed in to see and edit ventures.";$('tbAccess').textContent="Offline";return}
+  if(canWrite===false){b.hidden=false;b.className="banner";b.innerHTML="<b>View only.</b> You can follow progress but not change it. Ask the tracker's owner for Contributor or Editor access to update ventures.";$('tbAccess').textContent="View only";return}
+  b.hidden=true;$('tbAccess').textContent=db?"Can edit":"—";
+}
+function nameEl(id){return id?`<span data-uid="${esc(id)}">${esc(names[id]||"Someone")}</span>`:"Someone"}
+async function resolveNames(){
+  if(!user)return;
+  const ids=[...new Set([...document.querySelectorAll('[data-uid]')].map(e=>e.dataset.uid))];
+  if(!ids.length)return;
+  const ps=await user.profiles(ids);
+  ids.forEach(id=>{names[id]=(ps[id]&&ps[id].name)||"Someone"});
+  document.querySelectorAll('[data-uid]').forEach(e=>{e.textContent=names[e.dataset.uid]||"Someone"});
+}
+
+// ---------- portfolio view ----------
+function filtered(){
+  const q=filt.q.trim().toLowerCase();
+  let list=[...companies.entries()].map(([id,c])=>({id,c}));
+  if(filt.sec!=="all")list=list.filter(x=>x.c.sector===filt.sec);
+  if(q)list=list.filter(x=>(x.c.name||"").toLowerCase().includes(q)||(x.c.lead||"").toLowerCase().includes(q)||(x.c.sponsor||"").toLowerCase().includes(q));
+  return list;
+}
+function sorted(list){
+  const st={off:0,risk:1,on:2};
+  const by={
+    name:(a,b)=>(a.c.name||"").localeCompare(b.c.name||""),
+    phase:(a,b)=>(b.c.phase-a.c.phase)||(a.c.name||"").localeCompare(b.c.name||""),
+    status:(a,b)=>(st[a.c.status]??3)-(st[b.c.status]??3),
+    gap:(a,b)=>readiness(b.c).total-readiness(a.c).total,
+    gate:(a,b)=>(a.c.nextGate||"9999").localeCompare(b.c.nextGate||"9999"),
+    updated:(a,b)=>(b.c.updatedAt||"").localeCompare(a.c.updatedAt||"")
+  };
+  return list.sort(by[filt.sort]||by.phase);
+}
+function renderPortfolio(){
+  const all=[...companies.values()],list=filtered(),n=all.length;
+  const cnt={on:0,risk:0,off:0};all.forEach(c=>cnt[c.status]=(cnt[c.status]||0)+1);
+  const dueSoon=all.filter(c=>{const d=daysTo(c.nextGate);return d!==null&&d>=0&&d<=90}).length;
+  const late=all.filter(c=>{const d=daysTo(c.nextGate);return d!==null&&d<0}).length;
+  const founded=all.filter(c=>(c.phase||0)>=3).length,handover=all.filter(c=>(c.phase||0)===4).length;
+  const sig=all.map(signals),overdue=sig.reduce((a,s)=>a+s.overdue,0),open=sig.reduce((a,s)=>a+s.open,0);
+  const pct=k=>n?(cnt[k]/n*100):0;
+  const strip=`<div class="strip" aria-label="Venture summary">
+    <div><span class="label">Ventures tracked</span><b>${loaded?n:"—"}</b><small>${founded} incorporated (past G3) · ${handover} in traction</small></div>
+    <div><span class="label">Status</span><b>${loaded?cnt.on:"—"}<span class="muted" style="font-size:1rem"> on track</span></b>
+      <div class="rag" role="img" aria-label="${cnt.on} on track, ${cnt.risk} at risk, ${cnt.off} off track"><i style="width:${pct('on')}%;background:var(--good)"></i><i style="width:${pct('risk')}%;background:var(--warn)"></i><i style="width:${pct('off')}%;background:var(--bad)"></i></div>
+      <small>${cnt.risk} at risk · ${cnt.off} off track</small></div>
+    <div><span class="label">Gate decisions ≤ 90 days</span><b>${loaded?dueSoon:"—"}</b><small>${all.filter(c=>readiness(c).gaps.length===0).length} ready on readiness score${late?` · <span class="bad">${late} past date</span>`:""}</small></div>
+    <div><span class="label">Open actions</span><b>${loaded?open:"—"}</b><small>${overdue?`<span class="bad">${overdue} overdue</span>`:"none overdue"}</small></div>
+  </div>`;
+  const toolbar=`<div class="row" style="justify-content:space-between">
+    <div class="chips" role="group" aria-label="Filter by sector">${[{k:"all",short:"All sectors"},...SECTORS].map(s=>`<button class="chip" type="button" data-sec="${s.k}" aria-pressed="${filt.sec===s.k}">${esc(s.short)}</button>`).join("")}</div>
+    <div class="row"><input type="search" id="q" placeholder="Search venture, lead or sponsor" value="${esc(filt.q)}" style="width:240px" aria-label="Search ventures">
+    ${canWrite!==false&&db?`<button class="btn primary" type="button" id="addBtn">+ Add venture</button>`:""}</div>
+  </div>`;
+  const addForm=adding?`<form class="panel" id="addForm" aria-label="Add venture">
+    <h3>Add a new venture</h3>
+    <p class="muted" style="font-size:.88rem">The sector loads its early KPIs, gate must-haves and readiness dimensions from the framework. You can change all of them afterwards.</p>
+    <div class="form">
+      <div class="field half"><label class="label" for="nName">Venture name</label><input type="text" id="nName" required maxlength="80"></div>
+      <div class="field"><label class="label" for="nSec">Sector</label><select id="nSec">${SECTORS.map(s=>`<option value="${s.k}" ${filt.sec===s.k?"selected":""}>${esc(s.n)}</option>`).join("")}</select></div>
+      <div class="field"><label class="label" for="nPh">Current phase</label><select id="nPh">${PHASES.map((p,i)=>`<option value="${i}">${i+1} ${p.n}</option>`).join("")}</select></div>
+      <div class="field"><label class="label" for="nLead">Venture lead</label><input type="text" id="nLead" maxlength="60"></div>
+      <div class="field"><label class="label" for="nSpon">Business-unit sponsor</label><input type="text" id="nSpon" maxlength="60"></div>
+      <div class="field half"><label class="label" for="nMod">Founding model</label><select id="nMod"><option value="">Not decided yet (chosen at G2)</option>${MODELS.map(m=>`<option>${esc(m[0])}</option>`).join("")}</select></div>
+      <div class="field"><label class="label" for="nGate">Next gate date</label><input type="date" id="nGate"></div>
+    </div>
+    <div class="row"><button class="btn primary" type="submit">Add venture</button><button class="btn" type="button" id="addCancel">Cancel</button></div>
+  </form>`:"";
+  let board,register="",feed="";
+  if(!loaded)board=boardHtml([]);
+  else if(!n)board=`<div class="empty"><span class="label">No ventures yet</span><h3>Add your first venture</h3><p class="lede">Each venture appears on the phase board below, from Explore to Traction, with its readiness against the next gate, gate criteria met, KPIs and actions. Start with the opportunity you take to G1 next.</p>${canWrite!==false&&db?`<button class="btn primary" type="button" id="addBtn2">+ Add venture</button>`:""}</div>`+boardHtml([]);
+  else{board=boardHtml(list);register=registerHtml(sorted(list));feed=feedHtml()}
+  $('view').innerHTML=`<div style="display:flex;flex-direction:column;gap:32px">
+    ${strip}
+    <section aria-labelledby="hBoard">
+      <div class="sechead"><div><span class="label">1 · Phase board</span><h2 id="hBoard">Where each venture sits on the path</h2></div></div>
+      ${toolbar}${addForm}${board}
+    </section>
+    ${register?`<section aria-labelledby="hReg"><div class="sechead"><div><span class="label">2 · Register</span><h2 id="hReg">All ventures at a glance</h2></div><span class="mono muted">${list.length} shown</span></div>${register}</section>`:""}
+    ${feed?`<section aria-labelledby="hFeed"><div class="sechead"><div><span class="label">3 · Activity</span><h2 id="hFeed">Latest updates across the ventures</h2></div></div>${feed}</section>`:""}
+  </div>`;
+  bindPortfolio();
+}
+function boardHtml(list){
+  return `<div class="boardwrap"><div class="board">${PHASES.map((p,i)=>{
+    const cs=list.filter(x=>(x.c.phase||0)===i).sort((a,b)=>(a.c.name||"").localeCompare(b.c.name||""));
+    return `<div class="col"><div class="colhead"><span class="label">Phase ${i+1}</span><span class="nm">${esc(p.n)}<span>${loaded?cs.length:"—"}</span></span><span class="mono muted" style="font-size:.68rem">${esc(p.dur)}</span>${i<4?`<span class="gate" aria-label="Gate ${GATES[i].g}"><b>${GATES[i].g}</b></span>`:""}</div>
+    <div class="cards">${cs.length?cs.map(x=>cardHtml(x.id,x.c)).join(""):`<p class="colempty">${loaded?"No ventures in this phase.":"Loading…"}</p>`}</div></div>`}).join("")}</div></div>`;
+}
+function cardHtml(id,c){
+  const r=readiness(c),s=SEC(c.sector),gp=c.phase<4?gateProgress(c,c.phase):null,sg=signals(c),st=STATUS[c.status]||STATUS.on,d=daysTo(c.nextGate);
+  const w=Math.min(100,r.avg/r.tAvg*100);
+  return `<button class="card ${st[1]}-b" type="button" data-co="${esc(id)}">
+    <span class="cn">${esc(c.name||"Untitled")}</span>
+    <span class="row" style="gap:6px"><span class="tag">${esc(s.short)}</span><span class="pill ${st[1]}">${st[0]}</span></span>
+    ${c.model?`<span class="meta"><span>${esc(c.model)}</span></span>`:""}
+    <span class="meter ${r.gaps.length?"gap":""}" title="Readiness ${r.avg.toFixed(1)} vs gate target ${r.tAvg.toFixed(1)}"><i style="width:${w}%"></i></span>
+    <span class="meta"><span>${r.met}/8 dims at target</span>${gp?`<span>${gp.mustDone}/${gp.mustTotal} musts ${GATES[c.phase].g}</span>`:"<span>Handover prep</span>"}</span>
+    <span class="meta"><span class="${d!==null&&d<0?"bad":""}">${c.nextGate?gateOf(c.phase)+" "+fmtDate(c.nextGate):"No gate date"}</span>${sg.overdue?`<span class="bad">${sg.overdue} overdue</span>`:""}${sg.runwayLow?`<span class="bad">${esc(c.runway)} mo runway</span>`:""}</span>
+  </button>`;
+}
+function registerHtml(list){
+  const th=(k,l,cls="")=>`<th class="${cls}"><button type="button" data-sort="${k}" aria-label="Sort by ${l}">${l}${filt.sort===k?" ▾":""}</button></th>`;
+  return `<div class="tablewrap"><table class="reg"><thead><tr>${th("name","Venture")}<th>Sector</th><th>Founding model</th>${th("phase","Phase")}${th("status","Status")}${th("gap","Readiness","num")}<th class="num">Gate musts</th>${th("gate","Next gate")}<th class="num">KPIs on target</th><th class="num">Runway</th><th class="num">Open actions</th>${th("updated","Updated")}</tr></thead><tbody>${list.map(({id,c})=>{
+    const r=readiness(c),s=SEC(c.sector),st=STATUS[c.status]||STATUS.on,sg=signals(c),gp=c.phase<4?gateProgress(c,c.phase):null,d=daysTo(c.nextGate);
+    return `<tr class="pick" data-co="${esc(id)}" tabindex="0"><td class="nm">${esc(c.name||"Untitled")}${c.lead?`<small class="muted" style="display:block;font-family:var(--f-body);font-weight:400;font-size:.78rem">${esc(c.lead)}</small>`:""}</td>
+    <td><span class="tag">${esc(s.short)}</span></td>
+    <td style="font-size:.84rem">${c.model?esc(c.model)+(has(c.stake)?`<small class="muted mono" style="display:block">${esc(c.stake)}% stake</small>`:""):`<span class="muted">Not decided</span>`}</td>
+    <td class="mono">${(c.phase||0)+1} ${esc(PHASES[c.phase||0].n)}</td>
+    <td><span class="pill ${st[1]}">${st[0]}</span></td>
+    <td class="num"><span class="verdict ${r.verdict[0]}" style="font-size:.74rem">${r.avg.toFixed(1)} · ${r.gaps.length?r.gaps.length+" gaps":"ready"}</span></td>
+    <td class="num mono">${gp?`${gp.mustDone}/${gp.mustTotal}`:"—"}</td>
+    <td class="mono ${d!==null&&d<0?"bad":""}">${c.nextGate?fmtDate(c.nextGate):"—"}${d!==null?`<small class="muted" style="display:block">${d<0?(-d)+" d late":"in "+d+" d"}</small>`:""}</td>
+    <td class="num mono">${sg.kpiN?`<span class="${sg.kpiOn<sg.kpiN?"warn":"good"}">${sg.kpiOn}/${sg.kpiN}</span>`:"—"}</td>
+    <td class="num mono ${sg.runwayLow?"bad":""}">${has(c.runway)?esc(c.runway)+" mo":"—"}</td>
+    <td class="num mono">${sg.open}${sg.overdue?` <span class="bad">(${sg.overdue} late)</span>`:""}</td>
+    <td class="mono muted">${rel(c.updatedAt)}</td></tr>`}).join("")}</tbody></table></div>`;
+}
+function feedHtml(){
+  const items=[];
+  companies.forEach((c,id)=>live(c.log).forEach(([,l])=>items.push({id,c,l})));
+  items.sort((a,b)=>(b.l.at||"").localeCompare(a.l.at||""));
+  const top=items.slice(0,15);
+  if(!top.length)return `<p class="muted">No activity yet.</p>`;
+  return `<ul class="feed">${top.map(x=>`<li><time datetime="${esc(x.l.at)}">${rel(x.l.at)}</time><div><button class="co" type="button" data-co="${esc(x.id)}">${esc(x.c.name)}</button> · ${esc(x.l.t)} <span class="who">— ${nameEl(x.l.by)}</span></div></li>`).join("")}</ul>`;
+}
+function bindPortfolio(){
+  document.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>{filt.sec=b.dataset.sec;store.set('venture-filter',filt);render()});
+  document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{filt.sort=b.dataset.sort;store.set('venture-filter',filt);render()});
+  const q=$('q');if(q){q.oninput=()=>{filt.q=q.value;store.set('venture-filter',filt);clearTimeout(q._t);q._t=setTimeout(()=>{render.force=true;render();const n=$('q');n.focus();n.setSelectionRange(n.value.length,n.value.length)},250)}}
+  document.querySelectorAll('[data-co]').forEach(el=>{const go=()=>openCompany(el.dataset.co);el.onclick=go;if(el.tagName==="TR")el.onkeydown=e=>{if(e.key==="Enter")go()}});
+  ['addBtn','addBtn2'].forEach(k=>{const b=$(k);if(b)b.onclick=()=>{adding=true;render.force=true;render();$('nName').focus()}});
+  const f=$('addForm');
+  if(f){$('addCancel').onclick=()=>{adding=false;render.force=true;render()};f.onsubmit=e=>{e.preventDefault();createCompany()}}
+}
+function openCompany(id){view.co=id;confirmDel=false;render.force=true;render();window.scrollTo({top:0})}
+async function createCompany(){
+  const name=$('nName').value.trim();if(!name){$('nName').focus();return}
+  const sk=$('nSec').value,s=SEC(sk),ph=+$('nPh').value,now=new Date().toISOString();
+  const kpis={};s.kpi.split(";").map(x=>x.trim()).filter(Boolean).forEach((n,i)=>kpis[uid()]={n:n.charAt(0).toUpperCase()+n.slice(1),unit:"",base:"",target:"",dir:"up",ord:i,hist:{}});
+  const doc={name,sector:sk,phase:ph,status:"on",lead:$('nLead').value.trim(),sponsor:$('nSpon').value.trim(),model:$('nMod').value,stake:"",nextGate:$('nGate').value||"",runway:"",raised:"",summary:"",
+    scores:DIMS.map(()=>1),rhist:{},ticks:{},custom:{},kpis,actions:{},log:logEntry(`Added to the tracker in phase ${ph+1} ${PHASES[ph].n}`),createdAt:now,updatedAt:now,updatedBy:me?.id||null};
+  const btn=document.querySelector('#addForm [type=submit]');btn.disabled=true;
+  try{const ref=db.collection('ventures').doc();await ref.set(doc);companies.set(ref.id,doc);adding=false;toast(name+" added");openCompany(ref.id)}
+  catch(e){btn.disabled=false;handleWriteErr(e)}
+}
+
+// ---------- venture view ----------
+function renderCompany(c){
+  const id=view.co,s=SEC(c.sector),r=readiness(c),st=STATUS[c.status]||STATUS.on,sg=signals(c),ro=canWrite===false||!db,dis=ro?"disabled":"";
+  const d=daysTo(c.nextGate),ph=c.phase||0,P=PHASES[ph],G=ph<4?GATES[ph]:null;
+  const mdl=MODELS.find(m=>m[0]===c.model);
+  const profile=`<div class="cohead">
+    <div class="row"><button class="link" type="button" id="back">← All ventures</button></div>
+    <div class="top">
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <span class="label">${esc(s.n)} · ${esc(s.arch)}</span>
+        <h1>${esc(c.name||"Untitled")}</h1>
+        <div class="signals"><span class="pill ${st[1]}">${st[0]}</span><span class="verdict ${r.verdict[0]}">${r.verdict[1]}</span>${sg.overdue?`<span class="verdict v-stop">${sg.overdue} overdue action${sg.overdue>1?"s":""}</span>`:""}${sg.runwayLow?`<span class="verdict v-stop">Runway ${esc(c.runway)} mo</span>`:""}${d!==null&&d<0?`<span class="verdict v-stop">Gate date passed</span>`:""}</div>
+      </div>
+      <div class="mono muted" style="text-align:right">Updated ${rel(c.updatedAt)}${c.updatedBy?` by ${nameEl(c.updatedBy)}`:""}</div>
+    </div>
+  </div>
+  <form class="panel" id="prof" aria-label="Venture profile">
+    <div class="form">
+      <div class="field half"><label class="label" for="pName">Venture name</label><input type="text" id="pName" value="${esc(c.name)}" maxlength="80" ${dis}></div>
+      <div class="field"><label class="label" for="pSec">Sector</label><select id="pSec" ${dis}>${SECTORS.map(x=>`<option value="${x.k}" ${x.k===c.sector?"selected":""}>${esc(x.n)}</option>`).join("")}</select></div>
+      <div class="field"><label class="label" for="pSt">Status</label><select id="pSt" ${dis}>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${k===c.status?"selected":""}>${v[0]}</option>`).join("")}</select></div>
+      <div class="field"><label class="label" for="pLead">Venture lead</label><input type="text" id="pLead" value="${esc(c.lead)}" maxlength="60" ${dis}></div>
+      <div class="field"><label class="label" for="pSpon">Business-unit sponsor</label><input type="text" id="pSpon" value="${esc(c.sponsor)}" maxlength="60" ${dis}></div>
+      <div class="field"><label class="label" for="pGate">Next ${esc(gateOf(ph))} date</label><input type="date" id="pGate" value="${esc(c.nextGate)}" ${dis}></div>
+      <div class="field"><label class="label" for="pStage">Maturity reference</label><input type="text" id="pStage" value="${esc(s.mat[ph])}" disabled></div>
+      <div class="field half"><label class="label" for="pMod">Founding model</label><select id="pMod" ${dis}><option value="">Not decided yet (chosen at G2)</option>${MODELS.map(m=>`<option ${m[0]===c.model?"selected":""}>${esc(m[0])}</option>`).join("")}</select></div>
+      <div class="field"><label class="label" for="pStake">Investor stake (%)</label><input type="number" id="pStake" min="0" max="100" step="0.1" value="${esc(c.stake)}" ${dis}></div>
+      <div class="field"><label class="label" for="pRun">Runway (months)</label><input type="number" id="pRun" min="0" step="1" value="${esc(c.runway)}" ${dis}></div>
+      <div class="field"><label class="label" for="pRaised">Raised to date (€k)</label><input type="number" id="pRaised" min="0" step="1" value="${esc(c.raised)}" ${dis}></div>
+      <div class="field wide"><label class="label" for="pSum">Current situation &amp; next milestone</label><textarea id="pSum" maxlength="1200" ${dis} placeholder="What changed since the last review, and what the venture must show next.">${esc(c.summary)}</textarea></div>
+    </div>
+    ${mdl?`<p class="muted" style="font-size:.84rem"><b style="color:var(--ink)">${esc(mdl[0])}</b> · framework stake ${esc(mdl[3])}. Watch-outs: ${esc(mdl[5])}.${s.model?` Typical in ${esc(s.short)}: ${esc(s.model)}.`:""}</p>`:`<p class="muted" style="font-size:.84rem">Typical founding model in ${esc(s.short)}: ${esc(s.model)}.</p>`}
+  </form>`;
+
+  const track=`<section aria-labelledby="hTrack"><div class="sechead"><div><span class="label">1 · Phase</span><h2 id="hTrack">Phase ${ph+1} of 5 · ${esc(P.n)}</h2><p class="lede">${esc(s.ph[ph])}</p></div></div>
+    <div class="track" role="group" aria-label="Set phase">${PHASES.map((p,i)=>`<button class="stage ${i<ph?"done":""}" type="button" data-ph="${i}" aria-pressed="${i===ph}" ${dis}><span class="num">Phase ${i+1}${i<ph?" · passed":""}</span><span class="nm">${esc(p.n)}</span><span class="tg">${esc(s.mat[i])}</span>${i<4?`<span class="gate" aria-label="Gate ${GATES[i].g}"><b>${GATES[i].g}</b></span>`:""}</button>`).join("")}</div>
+    <div class="panel" style="gap:8px"><p><span class="label">Key question</span><br><b>${esc(P.q)}</b></p><p style="font-size:.9rem"><span class="label">Deliverables</span><br>${esc(P.dlv)}</p><p class="mono muted">Typical duration ${esc(P.dur)} · Budget ${esc(P.bud)}${G?` · ${G.g} decided by ${esc(G.who)}: ${esc(G.dec)}`:""}</p></div>
+    ${ph===4?`<div class="handover"><b>Next: hand over to the Portfolio Industrialization Cockpit</b><span style="font-size:.9rem">Once the Series A data room and Pilot-to-Series G1 readiness are in place (tool T25), add this venture in Prove phase there and mark it handed over here.</span><a href="${IND_URL}" target="_blank" rel="noopener">Open the Portfolio Industrialization Cockpit</a></div>`:""}
+    ${ro?"":`<p class="muted" style="font-size:.84rem">Select a phase to move the venture once its gate is passed.</p>`}
+  </section>`;
+
+  const hist=Object.entries(c.rhist||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+  const tgName=ph<4?GATES[ph].g:"G4 (held through traction)";
+  const ready=`<section aria-labelledby="hReady"><div class="sechead"><div><span class="label">2 · Readiness</span><h2 id="hReady">Readiness against ${esc(tgName)}</h2><p class="lede">Score each dimension 1 to 5. The dashed line is the target for the next gate; gaps point to the framework tool that closes them.</p></div>${c.scoredAt?`<span class="mono muted">Last scored ${rel(c.scoredAt)}</span>`:""}</div>
+    <div class="ready">
+      <div class="panel"><div class="sliders">${DIMS.map((dm,i)=>{const[n,sub]=dimLabel(i,c.sector);return `<div class="sl"><label for="d${i}">${esc(n)}<small>${esc(sub)}</small></label><input type="range" id="d${i}" min="1" max="5" step="1" value="${r.v[i]||1}" ${dis}><output id="o${i}" class="${(r.v[i]||1)<r.t[i]?"gap":""}">${r.v[i]||1} / ${r.t[i]}</output></div>`}).join("")}</div></div>
+      <div class="panel">
+        <svg id="radar" viewBox="-60 0 540 380" role="img" aria-label="Readiness radar chart" style="width:100%;max-width:520px;align-self:center">${radar(r.v,r.t,c.sector)}</svg>
+        <div class="score"><div><span class="label">Average</span><b>${r.avg.toFixed(1)}</b></div><div><span class="label">Gaps</span><b>${r.gaps.length}</b></div><div><span class="label">Gap points</span><b>${r.total}</b></div><div><span class="label">Trend</span>${hist.length>1?sparkHtml(hist.map(h=>h[1].avg),{min:1,max:5,w:140}):`<span class="mono muted" style="padding-top:6px">Builds as scores change</span>`}</div></div>
+        <div><span class="label">Gaps to close before the gate</span><ul class="gaps" style="margin-top:8px">${r.gaps.length?r.gaps.map(x=>{const tl=toolById(s.gap[x.i]);return `<li><b>${esc(s.dims[x.i])}</b> needs +${x.gap}. <span>Use ${tl?esc(tl.id+" "+tl.n):esc(s.gap[x.i])}.</span></li>`}).join(""):`<li style="border-color:var(--good)">All dimensions meet the gate target.</li>`}</ul></div>
+      </div>
+    </div></section>`;
+
+  const gates=`<section aria-labelledby="hGates"><div class="sechead"><div><span class="label">3 · Gates</span><h2 id="hGates">Gate criteria</h2><p class="lede">Core criteria, the ${esc(s.short)} must-have (orange) and criteria you add for this venture (teal). Pass needs every criterion; Pass with action plan needs every Must; one open Must blocks the gate.</p></div></div>
+    <div class="gates">${GATES.map((g,gi)=>{const gp=gateProgress(c,gi),tk=c.ticks||{},cls=gi===ph?"next":gi<ph?"passed":"";
+      return `<div class="gatecard ${cls}"><header><div class="row"><span class="g">${g.g}</span><h3>${esc(g.n)}</h3>${gi===ph?`<span class="tag s">Next gate</span>`:gi<ph?`<span class="tag">Passed</span>`:""}</div><span class="verdict ${gp.v[0]}" style="font-size:.74rem">${gp.v[1]} · ${gp.done}/${gp.total}</span></header>
+      <p class="muted" style="font-size:.82rem;padding:8px 16px 0">${esc(g.q)} <span class="mono">Decision: ${esc(g.dec)}.</span></p>
+      <ul>${gp.items.map(x=>`<li class="${x.type}"><label><input type="checkbox" data-tick="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}" ${tk[x.key]?"checked":""} ${dis}><span>${esc(x.t)}</span><span class="kind">${x.type==="sx"?esc(s.short.toUpperCase())+" · MUST":x.type==="cu"?"OWN · "+x.k.toUpperCase():x.k.toUpperCase()}</span></label>${x.type==="cu"&&!ro?`<button class="x" type="button" data-delc="${esc(x.cid)}" aria-label="Remove criterion">×</button>`:""}</li>`).join("")}</ul>
+      ${ro?"":`<form data-addc="${g.g}"><input type="text" id="nc-${g.g}" placeholder="Add a criterion for this venture" maxlength="160" aria-label="New ${g.g} criterion"><select id="nk-${g.g}" aria-label="Criterion type"><option>Must</option><option>Should</option></select><button class="btn small" type="submit">Add</button></form>`}</div>`}).join("")}</div></section>`;
+
+  const kp=live(c.kpis).sort((a,b)=>(a[1].ord??0)-(b[1].ord??0));
+  const kpis=`<section aria-labelledby="hKpi"><div class="sechead"><div><span class="label">4 · KPIs</span><h2 id="hKpi">Early KPIs against target</h2><p class="lede">Starts from the ${esc(s.short)} early-KPI set. Set a baseline and target, then log a reading whenever new numbers arrive.</p></div><span class="mono muted">${sg.kpiN?`${sg.kpiOn}/${sg.kpiN} on target`:"No targets set"}</span></div>
+    <div class="tablewrap"><table class="kpit"><thead><tr><th>KPI</th><th>Unit</th><th>Better</th><th class="num">Baseline</th><th class="num">Target</th><th class="num">Latest</th><th>Trend</th><th>Log reading</th><th></th></tr></thead><tbody>
+    ${kp.length?kp.map(([kid,k])=>{const {h,last}=kpiLatest(k),ok=kpiState(k);return `<tr>
+      <td style="min-width:200px"><input type="text" data-kf="n" data-kid="${kid}" value="${esc(k.n)}" aria-label="KPI name" ${dis}></td>
+      <td><input type="text" data-kf="unit" data-kid="${kid}" value="${esc(k.unit)}" style="width:80px" aria-label="Unit" ${dis}></td>
+      <td><select data-kf="dir" data-kid="${kid}" aria-label="Direction" style="width:auto" ${dis}><option value="up" ${k.dir!=="down"?"selected":""}>Higher</option><option value="down" ${k.dir==="down"?"selected":""}>Lower</option></select></td>
+      <td class="num"><input type="number" step="any" data-kf="base" data-kid="${kid}" value="${esc(k.base)}" aria-label="Baseline" ${dis}></td>
+      <td class="num"><input type="number" step="any" data-kf="target" data-kid="${kid}" value="${esc(k.target)}" aria-label="Target" ${dis}></td>
+      <td class="num mono"><b class="${ok===null?"":ok?"good":"bad"}">${last?fmtNum(last[1]):"—"}</b>${last?`<small class="muted" style="display:block">${fmtDate(last[0])}</small>`:""}</td>
+      <td>${h.length>1?sparkHtml(h.map(x=>+x[1]),{target:has(k.target)?+k.target:null,ok}):`<span class="mono muted" style="font-size:.72rem">${h.length?"1 reading":"No readings"}</span>`}</td>
+      <td>${ro?"":`<form class="logrow" data-logk="${kid}"><input type="date" value="${today()}" aria-label="Reading date"><input type="number" step="any" placeholder="Value" aria-label="Reading value" required><button class="btn small" type="submit">Log</button></form>`}</td>
+      <td>${ro?"":`<button class="link" type="button" data-delk="${kid}" style="color:var(--muted)" aria-label="Remove KPI">Remove</button>`}</td></tr>`}).join(""):`<tr><td colspan="9" class="muted">No KPIs yet.</td></tr>`}
+    </tbody></table></div>
+    ${ro?"":`<div class="row"><button class="btn" type="button" id="addKpi">+ Add KPI</button></div>`}</section>`;
+
+  const acts=live(c.actions).sort((a,b)=>(a[1].done-b[1].done)||(a[1].due||"9999").localeCompare(b[1].due||"9999"));
+  const tl=TOOLS.filter(t=>(t.sec===null||t.sec.includes(s.n))&&t.ph.includes(P.n));
+  const tlOther=TOOLS.filter(t=>(t.sec===null||t.sec.includes(s.n))&&!t.ph.includes(P.n));
+  const actions=`<section aria-labelledby="hAct"><div class="sechead"><div><span class="label">5 · Actions</span><h2 id="hAct">Venture-building actions</h2><p class="lede">Owned, dated actions to close readiness gaps and gate criteria. Link each one to the framework tool it uses.</p></div><span class="mono muted">${sg.open} open${sg.overdue?` · <span class="bad">${sg.overdue} overdue</span>`:""}</span></div>
+    ${ro?"":`<form class="panel" id="actForm" aria-label="New action"><div class="form">
+      <div class="field half"><label class="label" for="aT">Action</label><input type="text" id="aT" maxlength="200" required placeholder="e.g. Run 10 more discovery interviews outside the group"></div>
+      <div class="field"><label class="label" for="aO">Owner</label><input type="text" id="aO" maxlength="60"></div>
+      <div class="field"><label class="label" for="aD">Due</label><input type="date" id="aD"></div>
+      <div class="field half"><label class="label" for="aTool">Framework tool</label><select id="aTool"><option value="">No tool</option><optgroup label="This phase · ${esc(P.n)}">${tl.map(t=>`<option value="${t.id}">${t.id} · ${esc(t.n)}</option>`).join("")}</optgroup><optgroup label="Other phases">${tlOther.map(t=>`<option value="${t.id}">${t.id} · ${esc(t.n)}</option>`).join("")}</optgroup></select></div>
+      <div class="field" style="justify-content:flex-end"><button class="btn primary" type="submit">Add action</button></div>
+    </div></form>`}
+    ${acts.length?`<ul class="acts">${acts.map(([aid,a])=>{const dd=daysTo(a.due),od=!a.done&&dd!==null&&dd<0,tool=toolById(a.tool);return `<li class="${a.done?"done":""}"><input type="checkbox" data-act="${aid}" ${a.done?"checked":""} aria-label="Mark done" ${dis}><div style="min-width:0"><div class="t">${esc(a.t)}</div><div class="sub">${a.owner?`<span>${esc(a.owner)}</span>`:""}${a.due?`<span class="${od?"od":""}">${od?"Overdue · ":"Due "}${fmtDate(a.due)}</span>`:""}${tool?`<span>${tool.id} ${esc(tool.n)}</span>`:""}</div></div>${ro?"<span></span>":`<button class="link" type="button" data-dela="${aid}" style="color:var(--muted)">Remove</button>`}</li>`}).join("")}</ul>`:`<p class="muted">No actions yet.</p>`}
+  </section>`;
+
+  const lg=live(c.log).sort((a,b)=>(b[1].at||"").localeCompare(a[1].at||"")).slice(0,40);
+  const activity=`<section aria-labelledby="hLog"><div class="sechead"><div><span class="label">6 · Activity</span><h2 id="hLog">Activity log</h2></div></div>
+    ${ro?"":`<form class="row" id="noteForm"><input type="text" id="note" maxlength="400" placeholder="Add a note: IC decision, interview insight, founder update…" aria-label="Note" style="flex:1 1 260px;width:auto"><button class="btn" type="submit">Add note</button></form>`}
+    <ul class="feed">${lg.length?lg.map(([,l])=>`<li><time datetime="${esc(l.at)}">${rel(l.at)}</time><div>${esc(l.t)} <span class="who">— ${nameEl(l.by)}</span></div></li>`).join(""):`<li><span></span><span class="muted">No activity yet.</span></li>`}</ul>
+  </section>`;
+
+  const danger=ro?"":`<section><div class="row">${confirmDel?`<div class="confirm"><b>Delete ${esc(c.name)} and its whole history for everyone?</b><button class="btn danger" type="button" id="delYes">Delete venture</button><button class="btn" type="button" id="delNo">Keep it</button></div>`:`<button class="btn danger" type="button" id="delCo">Delete venture…</button>`}</div></section>`;
+
+  $('view').innerHTML=`<div style="display:flex;flex-direction:column;gap:36px">${profile}${track}${ready}${gates}${kpis}${actions}${activity}${danger}</div>`;
+  bindCompany(id,c);
+}
+function shortName(n){return n.length>22?n.slice(0,21).trim()+"…":n}
+function radar(v,t,sk){
+  const cx=210,cy=190,R=128,n=DIMS.length;
+  const pt=(i,val)=>{const a=-Math.PI/2+i*2*Math.PI/n;const r=R*val/5;return[cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+  let s='';
+  for(let k=1;k<=5;k++)s+=`<polygon points="${DIMS.map((_,i)=>pt(i,k).join(',')).join(' ')}" fill="none" stroke="var(--line)" stroke-width="1"/>`;
+  DIMS.forEach((d,i)=>{const[x,y]=pt(i,5);s+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`;
+    const[lx,ly]=pt(i,6.0);const anchor=Math.abs(lx-cx)<8?"middle":(lx>cx?"start":"end");
+    s+=`<text x="${lx}" y="${ly+4}" text-anchor="${anchor}" font-size="10.5" fill="${(v[i]||1)<t[i]?"var(--bad)":"var(--muted)"}">${esc(shortName(SEC(sk).dims[i]))}</text>`;});
+  [1,3,5].forEach(k=>{const[x,y]=pt(0,k);s+=`<text x="${x+5}" y="${y+3}" font-size="9" fill="var(--muted)">${k}</text>`});
+  s+=`<polygon points="${DIMS.map((_,i)=>pt(i,v[i]||1).join(',')).join(' ')}" fill="var(--accent)" fill-opacity=".22" stroke="var(--accent)" stroke-width="2"/>`;
+  s+=`<polygon points="${DIMS.map((_,i)=>pt(i,t[i]).join(',')).join(' ')}" fill="none" stroke="var(--signal)" stroke-width="2" stroke-dasharray="5 4"/>`;
+  DIMS.forEach((_,i)=>{const[x,y]=pt(i,v[i]||1);s+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${(v[i]||1)<t[i]?"var(--bad)":"var(--accent)"}"/>`});
+  s+=`<g font-size="10" fill="var(--muted)"><rect x="12" y="354" width="14" height="4" fill="var(--accent)"/><text x="32" y="359">Score</text><line x1="86" y1="356" x2="102" y2="356" stroke="var(--signal)" stroke-width="2" stroke-dasharray="5 4"/><text x="108" y="359">Gate target</text></g>`;
+  return s;
+}
+function sparkHtml(vals,o={}){
+  const w=o.w||120,h=30,p=3;
+  let lo=o.min??Math.min(...vals,o.target??Infinity),hi=o.max??Math.max(...vals,o.target??-Infinity);
+  if(hi===lo){hi+=1;lo-=1}
+  const x=i=>p+i*(w-2*p)/(vals.length-1),y=v=>h-p-(v-lo)/(hi-lo)*(h-2*p);
+  const pts=vals.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const col=o.ok===false?"var(--bad)":"var(--accent)",last=vals.length-1;
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" role="img" aria-label="Trend of ${vals.length} readings">
+    ${o.target!==undefined&&o.target!==null&&!isNaN(o.target)?`<line x1="${p}" x2="${w-p}" y1="${y(o.target)}" y2="${y(o.target)}" stroke="var(--signal)" stroke-dasharray="3 3" stroke-width="1"/>`:""}
+    <polygon points="${x(0)},${h-p} ${pts} ${x(last)},${h-p}" fill="${col}" fill-opacity=".12"/>
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="${x(last)}" cy="${y(vals[last])}" r="2.6" fill="${col}"/></svg>`;
+}
+function bindCompany(id,c){
+  $('back').onclick=()=>{view.co=null;render.force=true;render()};
+  if(canWrite===false||!db)return;
+  const ph=c.phase||0;
+  const pf=(el,field,conv=v=>v)=>{el.onchange=()=>{const v=conv(el.value);if(v===c[field])return;let lt=null;
+    if(field==="status")lt=`Status set to ${STATUS[v][0]}`;
+    else if(field==="sector")lt=`Sector changed to ${SEC(v).n}`;
+    else if(field==="nextGate")lt=v?`${gateOf(ph)} date set to ${fmtDate(v)}`:"Gate date cleared";
+    else if(field==="runway")lt=`Runway updated to ${v===""?"—":v+" months"}`;
+    else if(field==="model")lt=v?`Founding model set to ${v}`:"Founding model cleared";
+    else if(field==="stake")lt=`Investor stake set to ${v===""?"—":v+"%"}`;
+    else if(field==="raised")lt=`Raised to date updated to ${v===""?"—":"€"+fmtNum(v)+"k"}`;
+    else if(field==="name")lt=`Renamed to ${v}`;
+    write(id,{[field]:v},lt);render.force=true;render()}};
+  const num=v=>v===""?"":+v;
+  pf($('pName'),'name',v=>v.trim()||c.name);pf($('pSec'),'sector');pf($('pSt'),'status');pf($('pLead'),'lead',v=>v.trim());pf($('pSpon'),'sponsor',v=>v.trim());
+  pf($('pGate'),'nextGate');pf($('pMod'),'model');pf($('pStake'),'stake',num);pf($('pRun'),'runway',num);pf($('pRaised'),'raised',num);pf($('pSum'),'summary',v=>v.trim());
+  $('prof').onsubmit=e=>e.preventDefault();
+  document.querySelectorAll('[data-ph]').forEach(b=>b.onclick=()=>{const p=+b.dataset.ph;if(p===ph)return;
+    write(id,{phase:p},p>ph?`Passed ${GATES[Math.min(ph,3)].g} → moved to phase ${p+1} ${PHASES[p].n}`:`Moved back to phase ${p+1} ${PHASES[p].n}`);render.force=true;render()});
+  DIMS.forEach((d,i)=>{const el=$('d'+i);
+    el.oninput=()=>{const v=+el.value,t=TARGET(ph)[i],o=$('o'+i);o.textContent=`${v} / ${t}`;o.className=v<t?"gap":"";
+      const sc=[...(c.scores||DIMS.map(()=>1))];sc[i]=v;$('radar').innerHTML=radar(sc,TARGET(ph),c.sector)};
+    el.onchange=()=>{const sc=[...(c.scores||DIMS.map(()=>1))],old=sc[i];sc[i]=+el.value;if(old===sc[i])return;
+      const r=readiness({...c,scores:sc});
+      write(id,{scores:sc,scoredAt:new Date().toISOString(),rhist:{[today()]:{avg:+r.avg.toFixed(2),gap:r.total,phase:ph}}},`${SEC(c.sector).dims[i]} scored ${sc[i]} (was ${old||1})`);
+      render.force=true;render()}});
+  document.querySelectorAll('[data-tick]').forEach(cb=>cb.onchange=()=>{write(id,{ticks:{[cb.dataset.tick]:cb.checked}},`${cb.dataset.g} ${cb.checked?"✓":"unticked"}: ${cb.dataset.txt}`);render.force=true;render()});
+  document.querySelectorAll('[data-addc]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const g=f.dataset.addc,t=$('nc-'+g).value.trim();if(!t)return;
+    write(id,{custom:{[uid()]:{g,t,k:$('nk-'+g).value,at:new Date().toISOString()}}},`${g} criterion added: ${t}`);render.force=true;render()});
+  document.querySelectorAll('[data-delc]').forEach(b=>b.onclick=()=>{const x=c.custom[b.dataset.delc];write(id,{custom:{[b.dataset.delc]:{del:true}}},`${x.g} criterion removed: ${x.t}`);render.force=true;render()});
+  document.querySelectorAll('[data-kf]').forEach(el=>el.onchange=()=>{const f=el.dataset.kf,kid=el.dataset.kid,k=c.kpis[kid];let v=el.value;if(f==="base"||f==="target")v=num(v);if(f==="n")v=v.trim()||k.n;
+    const lt=f==="target"?`KPI target for ${k.n} set to ${v===""?"—":fmtNum(v)}${k.unit?" "+k.unit:""}`:f==="n"?`KPI renamed to ${v}`:null;
+    write(id,{kpis:{[kid]:{[f]:v}}},lt);render.force=true;render()});
+  document.querySelectorAll('[data-logk]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const kid=f.dataset.logk,k=c.kpis[kid],[dEl,vEl]=f.querySelectorAll('input');if(vEl.value===""||!dEl.value)return;const v=+vEl.value;
+    write(id,{kpis:{[kid]:{hist:{[dEl.value]:v}}}},`${k.n}: ${fmtNum(v)}${k.unit?" "+k.unit:""} logged for ${fmtDate(dEl.value)}`);render.force=true;render()});
+  document.querySelectorAll('[data-delk]').forEach(b=>b.onclick=()=>{const k=c.kpis[b.dataset.delk];write(id,{kpis:{[b.dataset.delk]:{del:true}}},`KPI removed: ${k.n}`);render.force=true;render()});
+  const ak=$('addKpi');if(ak)ak.onclick=()=>{write(id,{kpis:{[uid()]:{n:"New KPI",unit:"",base:"",target:"",dir:"up",ord:live(c.kpis).length+100,hist:{}}}},null);render.force=true;render()};
+  const af=$('actForm');if(af)af.onsubmit=e=>{e.preventDefault();const t=$('aT').value.trim();if(!t)return;
+    write(id,{actions:{[uid()]:{t,owner:$('aO').value.trim(),due:$('aD').value||"",tool:$('aTool').value,done:false,at:new Date().toISOString()}}},`Action added: ${t}`);render.force=true;render()};
+  document.querySelectorAll('[data-act]').forEach(cb=>cb.onchange=()=>{const a=c.actions[cb.dataset.act];write(id,{actions:{[cb.dataset.act]:{done:cb.checked}}},`${cb.checked?"Action done":"Action reopened"}: ${a.t}`);render.force=true;render()});
+  document.querySelectorAll('[data-dela]').forEach(b=>b.onclick=()=>{const a=c.actions[b.dataset.dela];write(id,{actions:{[b.dataset.dela]:{del:true}}},`Action removed: ${a.t}`);render.force=true;render()});
+  const nf=$('noteForm');if(nf)nf.onsubmit=e=>{e.preventDefault();const t=$('note').value.trim();if(!t)return;write(id,{},"Note: "+t);render.force=true;render()};
+  const dc=$('delCo');if(dc)dc.onclick=()=>{confirmDel=true;render.force=true;render()};
+  const dn=$('delNo');if(dn)dn.onclick=()=>{confirmDel=false;render.force=true;render()};
+  const dy=$('delYes');if(dy)dy.onclick=async()=>{dy.disabled=true;const nm=c.name;try{await db.collection('ventures').doc(id).delete();companies.delete(id);view.co=null;confirmDel=false;toast(nm+" deleted");render.force=true;render()}catch(e){dy.disabled=false;handleWriteErr(e)}};
+}
+
+// ---------- boot ----------
+render();
+(async()=>{
+  const cl=window.claude;
+  if(!cl||!cl.use){loaded=true;renderBanner();setLive(false,"Not connected");render.force=true;render();return}
+  [db,user]=await Promise.all([cl.use("db"),cl.use("user")]);
+  if(user){me=await user.me();const cw=await user.can("data.write");canWrite=cw===null?null:cw}
+  if(!db){loaded=true;renderBanner();setLive(false,"Not connected");render.force=true;render();return}
+  renderBanner();
+  db.collection('ventures').onSnapshot(snap=>{
+    const m=new Map();snap.docs.forEach(d=>{if(d.exists)m.set(d.id,structuredClone(d.data()))});
+    companies=m;loaded=true;setLive(true,snap.metadata.fromCache?"Syncing…":"Live");renderBanner();render();
+  },()=>{setLive(false,"Disconnected");toast("Lost the live connection. Reload the page to reconnect.")});
+})();
+function setLive(on,t){$('live').classList.toggle('on',on);$('liveTxt').textContent=t}
+setInterval(()=>{if(!render.pending&&!document.activeElement?.matches?.('input,textarea,select'))renderTitleBlock()},60000);
+</script>

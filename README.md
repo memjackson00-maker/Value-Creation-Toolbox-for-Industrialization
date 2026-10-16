@@ -1,5 +1,24 @@
 # Value Creation Toolbox for Industrialization
 
+Two live, team-editable cockpits, one per framework stage:
+
+| Stage | Framework | Cockpit | File |
+|---|---|---|---|
+| Idea → Series A | VCF-FND-01 Idea-to-Company Toolbox | [Venture Foundation Cockpit](https://claude.ai/artifact/Ej1ep32QnTwEgSJvvccga9) | `venture-cockpit.html` |
+| PoC → scale | VCF-IND-01 Pilot-to-Series Toolbox | [Portfolio Industrialization Cockpit](https://claude.ai/artifact/HXfnY8oU188JDzv2T9FWnR) | `portfolio-cockpit.html` |
+
+A venture that passes G4 in the Venture Foundation Cockpit is added in Prove phase to the Portfolio Industrialization Cockpit.
+
+## Venture Foundation Cockpit (`venture-cockpit.html`)
+
+Same structure as the portfolio cockpit below, adapted to company foundation:
+five phases (Explore → Validate → Found → Build → Traction), gates G1–G4,
+founding model and investor stake per venture, business-unit sponsor,
+runway and capital raised, sector-specific readiness dimensions and gate
+must-haves, early KPIs from the sector playbook, and actions linked to the
+framework's 36 tools. Data lives in the artifact's shared database
+(collection `ventures`).
+
 ## Portfolio Industrialization Cockpit (`portfolio-cockpit.html`)
 
 A live, team-editable tracker for portfolio companies, built on the
