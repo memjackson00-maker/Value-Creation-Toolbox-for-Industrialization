@@ -256,6 +256,10 @@ svg text{font-family:var(--f-mono)}
 .removed s{flex:1;min-width:0}
 .addim{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) auto auto;gap:6px;align-items:end;border-top:1px solid var(--line);padding-top:12px}
 @media (max-width:520px){.addim{grid-template-columns:1fr 1fr}}
+.evo summary{cursor:pointer;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.evot{min-width:640px}
+.evot td,.evot th{padding:7px 10px}
+.hlc{background:var(--signal-soft)}
 .confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.88rem}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:.88rem;z-index:20;max-width:calc(100% - 32px)}
 footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;max-width:85ch;display:flex;flex-direction:column;gap:6px}
@@ -321,7 +325,84 @@ const DIMS=[
  {k:"fin",n:"Funding runway",s:"Cash to next gate"},
  {k:"org",n:"Team & organization",s:"Operators, governance"}
 ];
-const TARGET=[[3,1,1,1,1,2,2,2],[4,3,3,2,2,3,3,3],[4,4,4,4,4,4,4,3],[5,5,5,4,5,4,4,4],[5,5,5,5,5,5,4,4]];
+// Gate-progressive readiness model (VCF-IND-02 rev B). Each dimension lists, per gate (G1, G2, G3, G4, Scale review),
+// [minimum score, what the evidence must show at that gate], or null when it is not assessed at that gate.
+// Scores stay on one absolute scale: 1 not started … 5 proven at scale. Basis: DoD MRL Deskbook threads,
+// TRL/MLTRL, IRL (Sauser), VDA Maturity Level Assurance, APQP/PPAP, EVT-DVT-PVT practice, KTH IRL, ARENA CRI.
+const GCOLS=["G1","G2","G3","G4","Scale"];
+const RDIMS=[
+ {k:"tech",n:"Technology & product maturity",s:"TRL, performance in real use",keep:"Assessed at every gate; the evidence moves from bench to field (TRL 4–6 → 9).",g:[
+  [3,"Works in the OEM context on representative data or a test bench (TRL 4–6)."],
+  [4,"Holds its performance in real operation with pilot customers, sites or vehicles (TRL 7)."],
+  [4,"Design qualified against the full requirement set on production-intent units (TRL 8)."],
+  [5,"Proven in the field at series or rollout pace (TRL 9)."],
+  [5,"Next-generation roadmap and variants for further brands and markets."]]},
+ {k:"ip",n:"IP, data rights & freedom to operate",s:"Patents, licences, data-use terms",drop:"Settled by G2. Freedom to operate in launch markets and export control continue under Quality & compliance.",g:[
+  [3,"IP position, data rights and confidentiality agreed; first freedom-to-operate screen."],
+  [3,"Freedom to operate confirmed for pilot markets; ownership of jointly developed IP agreed."],null,null,null]},
+ {k:"integ",n:"Integration & interfaces",s:"Vehicle, plant, IT/OT interfaces",drop:"Standardized by G3. From launch it is tracked as deployment speed under Production & deployment.",g:[
+  [2,"Interfaces to vehicle, site or IT systems identified and specified (IRL 1–3)."],
+  [3,"Integrated and working in the pilot environment (IRL 5–6)."],
+  [4,"Integration verified and repeatable for new customers or sites (IRL 7–8)."],null,null]},
+ {k:"dfm",n:"Design for manufacture",s:"Design freeze, tolerances, configurability",drop:"Design is frozen at G3. Later changes run through change control under Quality & compliance.",g:[
+  null,
+  [3,"Design-for-manufacture review done; production-intent design and cost drivers known (EVT)."],
+  [4,"Design frozen on production parts and tools (DVT); change control in place."],null,null]},
+ {k:"mfg",n:"Production & deployment process",s:"MRL, tooling, capacity, rollout pace",g:[
+  null,
+  [2,"Production or rollout route defined; key process risks known (MRL 5–6)."],
+  [4,"Process proven on a pilot line or first standard sites (PVT, MRL 8); PPAP-ready."],
+  [5,"Run at rate with capable processes on critical features, e.g. Cpk ≥ 1.33 (MRL 9)."],
+  [5,"Capacity replicated to further lines, sites or regions (MRL 10)."]]},
+ {k:"sup",n:"Supply chain & partners",s:"Sources, capacity, risk",g:[
+  null,
+  [2,"Critical suppliers and partners identified, with backups for single sources."],
+  [4,"Key supplier contracts signed; supplier qualification and first-article inspection done."],
+  [4,"Suppliers deliver at rate and quality; launch supplier issues closed."],
+  [5,"Dual sourcing and regional supply for new markets."]]},
+ {k:"qua",n:"Quality & compliance",s:"Audits, certification, regulation",keep:"Assessed at every gate; moves from mapping rules to certification to field and post-market duties.",g:[
+  [2,"Applicable regulations mapped; export-control and sanctions screening done."],
+  [3,"Compliance roadmap agreed; pre-compliance tests passed with margin."],
+  [4,"Certification or homologation granted; quality system audited (VDA 6.3, PPAP)."],
+  [5,"Field quality at target; 8D loop and post-market duties (e.g. cybersecurity monitoring) running."],
+  [5,"Compliance extended to new markets; certifications maintained."]]},
+ {k:"service",n:"Service & aftermarket readiness",s:"Spare parts, diagnostics, warranty, SLA",g:[
+  null,null,
+  [3,"Service concept, warranty or SLA terms and spare-parts plan agreed for launch."],
+  [4,"Service network trained, parts available, warranty process tested."],
+  [5,"Uptime and service revenue at target across the network."]]},
+ {k:"com",n:"Commercial traction",s:"Customers, contracts, pipeline",keep:"Assessed at every gate; moves from willingness to pay to contracts, repeat orders and new markets.",g:[
+  [3,"Business value quantified with real data; a named owner will fund the pilot."],
+  [3,"Pilot KPIs met; pilot customers commit to buy (LOI or conversion terms)."],
+  [4,"Year-1 volume contracted or committed."],
+  [4,"Repeat orders and customer retention at launch volume."],
+  [5,"Second brand, customer or market won."]]},
+ {k:"econ",n:"Unit economics & cost",s:"Target cost, margin per unit",keep:"Assessed at every gate; moves from value hypothesis to target cost, quoted cost and real margin.",g:[
+  [2,"Value per unit exceeds expected cost; payback hypothesis."],
+  [3,"Target cost or unit economics within an agreed band (should-cost)."],
+  [4,"Cost at launch volume confirmed with supplier quotes."],
+  [4,"Positive contribution margin at current volume."],
+  [5,"Cost-down roadmap delivering margin at scale."]]},
+ {k:"fin",n:"Funding & runway",s:"Cash to the next gate",keep:"Assessed at every gate; the amount and type of capital needed grows with each phase.",g:[
+  [2,"Funding for the pilot secured."],
+  [3,"Funding for industrialization secured or in closing."],
+  [4,"Launch and working capital funded; at least 12 months runway."],
+  [4,"Runway through ramp-up; path to cash-flow break-even."],
+  [4,"Growth or exit financing options open."]]},
+ {k:"org",n:"Team & organization",s:"Roles, governance",keep:"Assessed at every gate; the roles that matter shift from founders to operations, quality and service.",g:[
+  [2,"Founding team, OEM sponsor and decision owners in place."],
+  [3,"Industrialization or operations lead hired or seconded."],
+  [3,"Quality, supply-chain and plant or rollout roles filled."],
+  [4,"Launch, service and customer-success organization running."],
+  [4,"Professional management and board governance for scale."]]},
+ {k:"scale",n:"Scalability & next markets",s:"Rollout model, new brands and regions",g:[
+  null,null,null,
+  [3,"Second brand, customer or market qualified in the pipeline."],
+  [5,"Multi-brand or multi-market rollout running."]]}
+];
+const OLDKEYS=["tech","dfm","mfg","sup","qua","com","fin","org"];
+const TOOL_MAP={ip:["D3","A1","T02"],integ:["A4","S5","E2","T05"],econ:["T08","T06","E5"],service:["T16","T15","T14"],scale:["T17","T13","S4","E3"]};
+const gateTarget=(d,gi)=>d.g[gi]?d.g[gi][0]:null;
 const GATES=[
  {g:"G1",n:"PoC → Pilot",c:[["Success criteria from the PoC charter met or explained","Must"],["Business value quantified with real data","Must"],["Named business owner who will fund the pilot","Must"],["IP, data rights and confidentiality agreed","Must"],["Export-control and sanctions screening done","Should"],["Pilot customers, sites or vehicles identified","Should"]]},
  {g:"G2",n:"Pilot → Industrialize",c:[["Pilot KPIs met in real operation","Must"],["Target cost or unit economics within an agreed band","Must"],["Funding for industrialization secured","Must"],["Industrialization plan with owners and budget","Should"],["Critical suppliers or partners identified with backups","Should"],["Compliance roadmap agreed with Legal and Quality","Should"]]},
@@ -342,6 +423,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
 const SEC=k=>SECTORS.find(s=>s.k===k)||SECTORS[0];
 const dimLabel=(d,sk)=>{const s=SEC(sk);return s.dims[d.k]?s.dims[d.k]:[d.n,d.s]};
+const dscOf=c=>{const m={};(c.scores||[]).forEach((v,i)=>{if(OLDKEYS[i])m[OLDKEYS[i]]=v});return Object.assign(m,c.dsc||{})};
 const live=o=>Object.entries(o||{}).filter(([,v])=>v&&!v.del);
 function rel(iso){if(!iso)return"—";const s=(Date.now()-new Date(iso))/1000;if(s<60)return"just now";if(s<3600)return Math.floor(s/60)+" min ago";if(s<86400)return Math.floor(s/3600)+" h ago";if(s<86400*30)return Math.floor(s/86400)+" d ago";return new Date(iso).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}
 function fmtDate(d){if(!d)return"—";const x=new Date(d+"T00:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"2-digit"})}
@@ -350,20 +432,22 @@ function fmtNum(v){if(v===null||v===undefined||v==="")return"—";const n=+v;ret
 function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,3200)}
 
 // ---------- derived metrics ----------
-function dimsOf(c){
-  const ph=c.phase||0,off=c.dimOff||{},sc=c.scores||[],cs=c.cscores||{},out=[];
-  DIMS.forEach((d,i)=>{if(off[d.k])return;const[n,sub]=dimLabel(d,c.sector);out.push({key:d.k,dk:d.k,n,s:sub,t:TARGET[ph][i],v:sc[i]||1,bi:i})});
-  live(c.cdims).sort((a,b)=>(a[1].at||"").localeCompare(b[1].at||"")).forEach(([id,x])=>out.push({key:"c_"+id,id,n:x.n,s:x.s||"Added for this company",t:+((x.tg&&x.tg[ph])??x.t??3),v:+(cs[id]??1),custom:true}));
+function dimsOf(c,gi=c.phase||0){
+  const off=c.dimOff||{},sc=dscOf(c),cs=c.cscores||{},out=[];
+  RDIMS.forEach(d=>{if(off[d.k]||!d.g[gi])return;const[n,sub]=dimLabel(d,c.sector);const prev=gi>0&&d.g[gi-1];
+    out.push({key:d.k,dk:d.k,n,s:sub,t:d.g[gi][0],focus:d.g[gi][1],v:+(sc[d.k]??1),isNew:gi>0&&!prev})});
+  live(c.cdims).sort((a,b)=>(a[1].at||"").localeCompare(b[1].at||"")).forEach(([id,x])=>out.push({key:"c_"+id,id,n:x.n,s:x.s||"Added for this company",t:+((x.tg&&x.tg[gi])??x.t??3),v:+(cs[id]??1),custom:true}));
   return out;
 }
-function readiness(c){
-  const dims=dimsOf(c),n=dims.length;
+function droppedAt(c,gi){const off=c.dimOff||{};return gi>0?RDIMS.filter(d=>!off[d.k]&&d.g[gi-1]&&!d.g[gi]):[]}
+function readiness(c,gi=c.phase||0){
+  const dims=dimsOf(c,gi),n=dims.length;
   const gaps=dims.map(d=>({d,gap:d.t-d.v})).filter(x=>x.gap>0).sort((a,b)=>b.gap-a.gap);
   const total=gaps.reduce((a,x)=>a+x.gap,0);
   const avg=n?dims.reduce((a,d)=>a+d.v,0)/n:0,tAvg=n?dims.reduce((a,d)=>a+d.t,0)/n:0;
-  const gate=PHASES[c.phase||0].gate||"Scale";
+  const gate=GCOLS[gi]==="Scale"?"Scale review":GCOLS[gi];
   const verdict=!n?["v-cond","No dimensions"]:total===0?["v-go","Ready for "+gate]:(total<=3&&gaps.every(x=>x.gap<=1))?["v-cond","Conditional"]:["v-stop","Not ready for "+gate];
-  return {dims,n,gaps,total,avg,tAvg,verdict,met:n-gaps.length};
+  return {dims,n,gaps,total,avg,tAvg,verdict,met:n-gaps.length,gi};
 }
 function gateItems(c,gi){
   const g=GATES[gi],s=SEC(c.sector);
@@ -401,7 +485,7 @@ let db=null,user=null,me=null,canWrite=null,companies=new Map(),loaded=false;
 let view={co:null};
 let filt=store.get('cockpit-filter',{sec:"all",q:"",sort:"phase"});
 let names={};
-let adding=false,confirmDel=false;
+let adding=false,confirmDel=false,rgv=null;
 
 // ---------- writes ----------
 const queues={};
@@ -594,7 +678,7 @@ function bindPortfolio(){
   const f=$('addForm');
   if(f){$('addCancel').onclick=()=>{adding=false;render.force=true;render()};f.onsubmit=e=>{e.preventDefault();createCompany()}}
 }
-function openCompany(id){view.co=id;confirmDel=false;render.force=true;render();window.scrollTo({top:0})}
+function openCompany(id){view.co=id;confirmDel=false;rgv=null;render.force=true;render();window.scrollTo({top:0})}
 
 async function createCompany(){
   const name=$('nName').value.trim();if(!name){$('nName').focus();return}
@@ -602,7 +686,7 @@ async function createCompany(){
   const now=new Date().toISOString();
   const kpis={};s.kpis.forEach((n,i)=>kpis[uid()]={n,unit:"",base:"",target:"",dir:"up",ord:i,hist:{}});
   const doc={name,sector:sk,phase:ph,status:"on",lead:$('nLead').value.trim(),nextGate:$('nGate').value||"",runway:$('nRun').value===""?"":+$('nRun').value,trl:$('nTrl').value===""?"":+$('nTrl').value,summary:"",
-    scores:DIMS.map(()=>1),rhist:{},ticks:{},custom:{},kpis,actions:{},log:logEntry(`Added to the tracker in phase ${ph+1} ${PHASES[ph].n}`),createdAt:now,updatedAt:now,updatedBy:me?.id||null};
+    dsc:{},rhist:{},ticks:{},custom:{},kpis,actions:{},log:logEntry(`Added to the tracker in phase ${ph+1} ${PHASES[ph].n}`),createdAt:now,updatedAt:now,updatedBy:me?.id||null};
   const btn=document.querySelector('#addForm [type=submit]');btn.disabled=true;
   try{
     const ref=db.collection('companies').doc();
@@ -652,18 +736,23 @@ function renderCompany(c){
   </section>`;
 
   const hist=Object.entries(c.rhist||{}).sort((a,b)=>a[0].localeCompare(b[0]));
-  const ready=`<section aria-labelledby="hReady"><div class="sechead"><div><span class="label">2 · Readiness</span><h2 id="hReady">Readiness against ${PHASES[c.phase].gate||"scale"}</h2><p class="lede">Score each dimension 1 to 5. The dashed line is the minimum for the next gate; gaps point to the framework tools that close them. Remove dimensions that don't apply to this company with ×, or add your own below.</p></div>${c.scoredAt?`<span class="mono muted">Last scored ${rel(c.scoredAt)}</span>`:""}</div>
+  const vg=rgv??c.phase,rv=readiness(c,vg),isCur=vg===c.phase,drp=droppedAt(c,vg);
+  const ready=`<section aria-labelledby="hReady"><div class="sechead"><div><span class="label">2 · Readiness</span><h2 id="hReady">Readiness against ${GCOLS[vg]==="Scale"?"the scale review":GCOLS[vg]}</h2><p class="lede">The dimensions change as the company moves through the gates: some are assessed at every gate with a rising bar, some only matter early (IP, integration, design freeze) and some only start at industrialization or launch (production, supply chain, service, next markets). Score 1 (not started) to 5 (proven at scale); a score carries over when a dimension stays in play.</p></div>${c.scoredAt?`<span class="mono muted">Last scored ${rel(c.scoredAt)}</span>`:""}</div>
+    <div class="row" role="group" aria-label="Show readiness for gate"><span class="label">Show gate</span>${GCOLS.map((g,i)=>`<button class="chip" type="button" data-rgv="${i}" aria-pressed="${i===vg}">${g}${i===c.phase?" · next":""}</button>`).join("")}${isCur?"":`<span class="mono muted">Preview: the company's next gate is ${GCOLS[c.phase]}.</span>`}</div>
     <div class="ready">
-      <div class="panel"><div class="sliders">${r.dims.length?r.dims.map((d,j)=>`<div class="sl ${d.custom?"cu":""}"><label for="d${j}">${esc(d.n)}<small>${esc(d.s)}${d.custom?" · own dimension":""}</small></label><input type="range" id="d${j}" min="1" max="5" step="1" value="${d.v}" ${dis}><output id="o${j}" class="${d.v<d.t?"gap":""}">${d.v} / ${d.t}</output>${ro?"<span></span>":`<button class="xbtn" type="button" data-rmdim="${esc(d.key)}" aria-label="Remove ${esc(d.n)}" title="Remove this dimension">×</button>`}</div>`).join(""):`<p class="muted">No readiness dimensions. Add one below or restore a framework dimension.</p>`}</div>
+      <div class="panel"><div class="sliders">${rv.dims.length?rv.dims.map((d,j)=>`<div class="sl ${d.custom?"cu":""}"><label for="d${j}">${esc(d.n)}${d.isNew?` <span class="tag s" style="font-size:.62rem">New at ${GCOLS[vg]}</span>`:""}<small>${esc(d.custom?d.s+" · own dimension":d.focus)}</small></label><input type="range" id="d${j}" min="1" max="5" step="1" value="${d.v}" ${dis}><output id="o${j}" class="${d.v<d.t?"gap":""}">${d.v} / ${d.t}</output>${ro?"<span></span>":`<button class="xbtn" type="button" data-rmdim="${esc(d.key)}" aria-label="Remove ${esc(d.n)}" title="Remove this dimension for this company">×</button>`}</div>`).join(""):`<p class="muted">No readiness dimensions at this gate. Add one below or restore a framework dimension.</p>`}</div>
+        ${drp.length?`<div class="removed" style="padding:0"><span class="label">No longer assessed from ${GCOLS[vg]}</span>${drp.map(d=>`<div><span><b style="color:var(--ink);font-weight:500">${esc(dimLabel(d,c.sector)[0])}</b> · ${esc(d.drop||"")}</span></div>`).join("")}</div>`:""}
         ${ro?"":`<form class="addim" id="dimForm" aria-label="Add readiness dimension"><div class="field"><label class="label" for="ndN">New dimension</label><input type="text" id="ndN" maxlength="60" required placeholder="e.g. Homologation"></div><div class="field"><label class="label" for="ndS">What it covers</label><input type="text" id="ndS" maxlength="100" placeholder="e.g. Type approval, test reports"></div><div class="field"><label class="label" for="ndT">Gate min.</label><select id="ndT" style="width:auto">${[1,2,3,4,5].map(v=>`<option ${v===3?"selected":""}>${v}</option>`).join("")}</select></div><button class="btn small" type="submit" style="margin-bottom:4px">Add</button></form>`}
-        ${(()=>{const off=DIMS.filter(d=>(c.dimOff||{})[d.k]);return off.length?`<div class="removed" style="padding:0"><span class="label">Removed framework dimensions</span>${off.map(d=>`<div><s>${esc(dimLabel(d,c.sector)[0])}</s>${ro?"":`<button class="link" type="button" data-rsdim="${d.k}">Restore</button>`}</div>`).join("")}</div>`:""})()}
+        ${(()=>{const off=RDIMS.filter(d=>(c.dimOff||{})[d.k]);return off.length?`<div class="removed" style="padding:0"><span class="label">Removed for this company</span>${off.map(d=>`<div><s>${esc(dimLabel(d,c.sector)[0])}</s>${ro?"":`<button class="link" type="button" data-rsdim="${d.k}">Restore</button>`}</div>`).join("")}</div>`:""})()}
       </div>
       <div class="panel">
-        <svg id="radar" viewBox="-60 0 540 380" role="img" aria-label="Readiness radar chart" style="width:100%;max-width:520px;align-self:center">${radar(r.dims)}</svg>
-        <div class="score"><div><span class="label">Average</span><b>${r.avg.toFixed(1)}</b></div><div><span class="label">Gap points</span><b>${r.total}</b></div><div><span class="label">Trend</span>${hist.length>1?sparkHtml(hist.map(h=>h[1].avg),{min:1,max:5,w:140}):`<span class="mono muted" style="padding-top:6px">Builds as scores change</span>`}</div></div>
-        <div><span class="label">Gaps to close before the gate</span><ul class="gaps" style="margin-top:8px">${r.gaps.length?r.gaps.map(x=>`<li><b>${esc(x.d.n)}</b> needs +${x.gap}. <span>${x.d.custom?"Add an owned action below to close it.":"Use "+(toolsFor(x.d.dk,c.sector).map(q=>q.id+" "+esc(q.n)).join(", ")||"the board KPI cockpit to set an owner")+"."}</span></li>`).join(""):r.n?`<li style="border-color:var(--good)">All dimensions meet the gate minimum.</li>`:`<li style="border-color:var(--line-strong)">Add a dimension to score readiness.</li>`}</ul></div>
+        <svg id="radar" viewBox="-60 0 540 380" role="img" aria-label="Readiness radar chart" style="width:100%;max-width:520px;align-self:center">${radar(rv.dims)}</svg>
+        <div class="score"><div><span class="label">Average</span><b>${rv.avg.toFixed(1)}</b></div><div><span class="label">Gap points</span><b>${rv.total}</b></div><div><span class="label">Verdict</span><span class="verdict ${rv.verdict[0]}" style="margin-top:4px">${rv.verdict[1]}</span></div><div><span class="label">Trend</span>${hist.length>1?sparkHtml(hist.map(h=>h[1].avg),{min:1,max:5,w:140}):`<span class="mono muted" style="padding-top:6px">Builds as scores change</span>`}</div></div>
+        <div><span class="label">Gaps to close before ${GCOLS[vg]==="Scale"?"the scale review":GCOLS[vg]}</span><ul class="gaps" style="margin-top:8px">${rv.gaps.length?rv.gaps.map(x=>`<li><b>${esc(x.d.n)}</b> needs +${x.gap}. <span>${x.d.custom?"Add an owned action below to close it.":"Use "+(toolsFor(x.d.dk,c.sector).map(q=>q.id+" "+esc(q.n)).join(", ")||"the board KPI cockpit to set an owner")+"."}</span></li>`).join(""):rv.n?`<li style="border-color:var(--good)">All dimensions meet the gate minimum.</li>`:`<li style="border-color:var(--line-strong)">Add a dimension to score readiness.</li>`}</ul></div>
       </div>
-    </div></section>`;
+    </div>
+    ${evoTable(c,vg)}
+  </section>`;
 
   const gates=`<section aria-labelledby="hGates"><div class="sechead"><div><span class="label">3 · Gates</span><h2 id="hGates">Gate criteria</h2><p class="lede">Core criteria, the ${esc(s.short)} must-have (orange) and criteria you add for this company (teal). Must-haves block the gate; should-haves can pass with a dated plan. Remove any criterion that doesn't apply with ×; removed framework criteria can be restored.</p></div></div>
     <div class="gates">${GATES.map((g,gi)=>{const gp=gateProgress(c,gi),tk=c.ticks||{},cls=gi===c.phase?"next":gi<c.phase?"passed":"";
@@ -714,11 +803,22 @@ function renderCompany(c){
   bindCompany(id,c);
 }
 function toolsFor(dk,sk){
+  if(TOOL_MAP[dk])return TOOL_MAP[dk].map(id=>STOOLS.find(t=>t.id===id&&t.sec===sk)||CORE.find(t=>t.id===id&&t.s.includes(sk))).filter(Boolean).slice(0,3);
   const sx=STOOLS.filter(t=>t.sec===sk&&t.d.includes(dk));
   const core=CORE.filter(t=>t.s.includes(sk)&&t.d.includes(dk));
   return [...sx,...core].slice(0,3);
 }
-function shortName(n){return n.length>18?n.split(/ & | /)[0]:n}
+function evoTable(c,vg){
+  const off=c.dimOff||{},sc=dscOf(c);
+  const rows=RDIMS.map(d=>{const[n]=dimLabel(d,c.sector);const first=d.g.findIndex(Boolean),last=d.g.length-1-[...d.g].reverse().findIndex(Boolean);
+    const kind=first===0&&last===4?"Every gate":first>0?`From ${GCOLS[first]}`:`Until ${GCOLS[last]}`;
+    return `<tr class="${off[d.k]?"muted":""}"><td style="min-width:220px">${off[d.k]?`<s>${esc(n)}</s> <small class="muted">removed</small>`:esc(n)}<small class="muted" style="display:block;font-size:.74rem">${kind}</small></td>${d.g.map((x,i)=>`<td class="num mono ${i===vg?"hlc":""}" title="${x?esc(GCOLS[i]+": "+x[1]):"Not assessed at "+GCOLS[i]}">${x?`<b class="${(sc[d.k]??1)<x[0]&&!off[d.k]?"bad":""}">${x[0]}</b>${i>0&&!d.g[i-1]?` <span class="tag s" style="font-size:.58rem;padding:0 4px">new</span>`:""}`:`<span class="muted">—</span>`}</td>`).join("")}<td class="num mono">${off[d.k]?"—":esc(sc[d.k]??1)}</td></tr>`}).join("");
+  const cu=live(c.cdims).map(([id,x])=>`<tr><td>${esc(x.n)}<small class="muted" style="display:block;font-size:.74rem">Own dimension · every gate</small></td>${GCOLS.map((g,i)=>`<td class="num mono ${i===vg?"hlc":""}">${esc((x.tg&&x.tg[i])??x.t??3)}</td>`).join("")}<td class="num mono">${esc((c.cscores||{})[id]??1)}</td></tr>`).join("");
+  return `<details class="evo"${vg!==c.phase?" open":""}><summary><span class="label">How readiness changes through the gates</span> <span class="muted" style="font-size:.84rem">Minimum score per gate; red where the current score is below it. Hover a number for what that gate must see.</span></summary>
+    <div class="tablewrap" style="margin-top:10px"><table class="evot"><thead><tr><th>Dimension</th>${GCOLS.map((g,i)=>`<th class="num ${i===vg?"hlc":""}">${g}</th>`).join("")}<th class="num">Score now</th></tr></thead><tbody>${rows}${cu}</tbody></table></div>
+    <p class="muted" style="font-size:.78rem;margin-top:8px">Built on the DoD Manufacturing Readiness Level Deskbook (nine threads assessed together, lowest thread sets the level), TRL and machine-learning TRLs, integration readiness levels, VDA Maturity Level Assurance for new parts, APQP/PPAP, EVT–DVT–PVT build stages, the KTH Innovation Readiness Level and ARENA's Commercial Readiness Index. Minimum scores are starting assumptions for team review.</p></details>`;
+}
+function shortName(n){return n.length>18?n.slice(0,17).trim()+"…":n}
 function radar(dims){
   const cx=210,cy=190,R=128,n=dims.length;
   if(n<3)return `<text x="210" y="190" text-anchor="middle" font-size="12" fill="var(--muted)">The radar needs at least 3 dimensions (${n} now).</text>`;
@@ -752,6 +852,7 @@ function sparkHtml(vals,o={}){
 }
 function bindCompany(id,c){
   $('back').onclick=()=>{view.co=null;render.force=true;render()};
+  document.querySelectorAll('[data-rgv]').forEach(b=>b.onclick=()=>{const v=+b.dataset.rgv;rgv=v===c.phase?null:v;render.force=true;render()});
   if(canWrite===false||!db)return;
   const s=SEC(c.sector);
   // profile fields save on change
@@ -773,23 +874,23 @@ function bindCompany(id,c){
   document.querySelectorAll('[data-ph]').forEach(b=>b.onclick=()=>{const p=+b.dataset.ph;if(p===c.phase)return;
     write(id,{phase:p},p>c.phase?`Passed ${PHASES[c.phase].gate||""} → moved to phase ${p+1} ${PHASES[p].n}`.replace("  "," "):`Moved back to phase ${p+1} ${PHASES[p].n}`);render.force=true;render()});
   // readiness sliders: live preview on input, save on release
-  const rd=readiness(c);
+  const rd=readiness(c,rgv??c.phase);
   rd.dims.forEach((d,j)=>{const el=$('d'+j);
     el.oninput=()=>{const v=+el.value,o=$('o'+j);o.textContent=`${v} / ${d.t}`;o.className=v<d.t?"gap":"";
       $('radar').innerHTML=radar(rd.dims.map((x,k)=>k===j?{...x,v}:x))};
     el.onchange=()=>{const v=+el.value,old=d.v;if(old===v)return;
       let patch,next;
       if(d.custom){patch={cscores:{[d.id]:v}};next={...c,cscores:{...(c.cscores||{}),[d.id]:v}}}
-      else{const sc=[...(c.scores||DIMS.map(()=>1))];sc[d.bi]=v;patch={scores:sc};next={...c,scores:sc}}
-      const r=readiness(next);
+      else{patch={dsc:{[d.dk]:v}};next={...c,dsc:{...dscOf(c),[d.dk]:v}}}
+      const r=readiness(next,c.phase);
       Object.assign(patch,{scoredAt:new Date().toISOString(),rhist:{[today()]:{avg:+r.avg.toFixed(2),gap:r.total,phase:c.phase}}});
       write(id,patch,`${d.n} scored ${v} (was ${old})`);render.force=true;render()}});
   document.querySelectorAll('[data-rmdim]').forEach(b=>b.onclick=()=>{const d=rd.dims.find(x=>x.key===b.dataset.rmdim);if(!d)return;
     write(id,d.custom?{cdims:{[d.id]:{del:true}}}:{dimOff:{[d.dk]:true}},`Readiness dimension removed: ${d.n}`);render.force=true;render()});
-  document.querySelectorAll('[data-rsdim]').forEach(b=>b.onclick=()=>{const d=DIMS.find(x=>x.k===b.dataset.rsdim);
+  document.querySelectorAll('[data-rsdim]').forEach(b=>b.onclick=()=>{const d=RDIMS.find(x=>x.k===b.dataset.rsdim);
     write(id,{dimOff:{[d.k]:false}},`Readiness dimension restored: ${dimLabel(d,c.sector)[0]}`);render.force=true;render()});
   const dfm=$('dimForm');if(dfm)dfm.onsubmit=e=>{e.preventDefault();const n=$('ndN').value.trim();if(!n)return;const t=+$('ndT').value;
-    write(id,{cdims:{[uid()]:{n,s:$('ndS').value.trim(),t,tg:{[c.phase]:t},at:new Date().toISOString()}}},`Readiness dimension added: ${n} (gate minimum ${t})`);render.force=true;render()};
+    write(id,{cdims:{[uid()]:{n,s:$('ndS').value.trim(),t,at:new Date().toISOString()}}},`Readiness dimension added: ${n} (gate minimum ${t})`);render.force=true;render()};
   // gate ticks
   document.querySelectorAll('[data-tick]').forEach(cb=>cb.onchange=()=>{write(id,{ticks:{[cb.dataset.tick]:cb.checked}},`${cb.dataset.g} ${cb.checked?"✓":"unticked"}: ${cb.dataset.txt}`);render.force=true;render()});
   document.querySelectorAll('[data-addc]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const g=f.dataset.addc,t=$('nc-'+g).value.trim();if(!t)return;
