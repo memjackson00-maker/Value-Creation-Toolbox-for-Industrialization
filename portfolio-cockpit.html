@@ -400,8 +400,111 @@ const RDIMS=[
   [3,"Second brand, customer or market qualified in the pipeline."],
   [5,"Multi-brand or multi-market rollout running."]]}
 ];
+// Sector-specific readiness evidence and gate criteria (VCF-IND-02 rev C).
+// f: what each shared dimension must show in this sector, per gate (null keeps the shared text).
+// add: dimensions only this sector assesses. off: shared dimensions this sector does not assess.
+const SEC_R={
+ energy:{off:[],f:{
+  tech:["Cells, pack or charger pass the safety and interoperability baseline on the bench (UN 38.3 abuse tests, CCS or MCS handshake).","B-samples or first sites hold durability, uptime and charging power in fleet use (TRL 7).","Validated to UN R100 rev. 3 incl. thermal propagation, or charger conformity to IEC 61851 and ISO 15118-20.","Field uptime at target across vehicles or sites; no open thermal or electrical safety incidents.","Next chemistry or higher-power roadmap (MCS up to 3.75 MW)."],
+  integ:["Vehicle and backend interfaces specified: CCS or MCS, ISO 15118-20, OCPP.","Interoperability tested with eTrucks of at least two brands and the OCPP backend.","Interoperability and smart-charging integration repeatable for new fleets and sites.",null,null],
+  dfm:[null,"Pack or charger design reviewed for production; standard site design drafted.","Pack or charger design frozen; standard site design and bill of materials released.",null,null],
+  mfg:[null,"Pack-line or site-build route defined; installation partners identified.","Pilot-line yield or standard site build time proven.","Production yield or months from site selection to energization at plan.","Further plants or regional rollout teams replicate the standard."],
+  sup:[null,"Cell, power-electronics and installer sources identified; raw-material exposure known.","Supply and installer framework contracts signed; due diligence for cobalt, lithium, nickel and graphite set up (applies from 18 Aug 2027).","Cells and hardware delivered at rate; installer capacity matches the pipeline.","Dual cell sourcing or regional supply; recycled-content sourcing planned."],
+  qua:["Rules mapped with owners: UN 38.3, UN R100, EU Battery Regulation, AFIR, Eichrecht, grid codes.","Battery Regulation duties assigned: carbon-footprint data, battery passport (18 Feb 2027), due diligence (18 Aug 2027).","UN R100 approval or charger CE and Eichrecht conformity granted; passport data ready.","Battery passport live for every battery placed on the market; AFIR payment and price-transparency duties met at public sites.","Compliance extended to new markets; recycled-content and carbon-footprint classes met."],
+  service:[null,null,"O&M concept, uptime SLA and spare-parts plan agreed for launch.","O&M teams and remote monitoring keep uptime at SLA; parts stocked regionally.","Uptime and energy-service revenue at target across the network."],
+  com:["Fleet or depot pain quantified (€/kWh, downtime, grid wait) with a named fleet sponsor.","Anchor fleet commits charging volume or offtake for the pilot sites.","Contracted volume or site pipeline covers the next 12 months.","Utilization (kWh per charger per day) at business-case level.","Charging or energy offers bundled with truck sales in several markets."],
+  econ:["€/kWh (pack) or € per kW installed below the incumbent in the business case.","Target €/kWh or €/kW within an agreed band; site payback modelled.","Pack or site cost quoted by suppliers at launch volume.","Positive margin per kWh or per site at current utilization.","Cost-down roadmap per kWh or per kW delivering."],
+  fin:[null,null,"Equity plus asset finance (SPV, lease or project finance) cover year-1 capex.","Utilization and uptime data good enough for lenders; non-recourse finance possible.",null]},
+  add:[{k:"grid",n:"Grid connection & sites",s:"Grid capacity, permits, energization",keep:"Energy only. Grid access is the main bottleneck for depot and corridor charging.",g:[
+   [2,"Grid capacity checked for reference sites; connection route and lead time known."],
+   [3,"Grid applications filed for pilot sites; permits mapped."],
+   [4,"Grid connections secured and permits granted for year-1 sites."],
+   [4,"Sites energized on schedule; months from selection to energization tracked."],
+   [5,"Site pipeline with grid reservations 12+ months ahead in every market."]]}]},
+ dt:{off:[],f:{
+  tech:["Effect reproduced outside the originating lab on a representative use case (TRL 4–5).","Prototype meets spec in a truck or plant environment (TRL 6).","Parts from the scale-up line qualified at automotive grade (durability, environmental and reliability tests).","Field performance and reliability on series parts at target.","Second application or customer beyond trucks."],
+  ip:["Patent families filed; first freedom-to-operate screen shows no blocking claims.","Freedom-to-operate opinion for target markets; licence terms with university or scale-up partner agreed.",null,null,null],
+  integ:["Interfaces to the host system (truck, component, plant process) specified.","Integrated into a host part or process in the pilot.","Integration at the tier-1 or OEM verified on production-intent parts.",null,null],
+  dfm:[null,"Process window and lab-to-line scale-up factor known; cost drivers identified.","Process frozen and documented in the tech-transfer package.",null,null],
+  mfg:[null,"Tech-transfer route to CDMO, foundry or tier-1 defined (MRL 4–5).","Yield learning done on the partner's pilot line (MRL 6–8); PPAP-ready.","Qualified process supplies at volume (MRL 9).","Second source or licensee producing (MRL 10)."],
+  sup:[null,"Scale-up partners shortlisted; critical precursors and equipment sources known.","Capacity reserved at the scale-up partner; production site IATF 16949-certified where supplied as an automotive part.","Partner delivers at rate, yield and quality.","Second source qualified or licensing in place."],
+  qua:["Export-control classification against EU dual-use Annex I (Reg. 2021/821) and REACH/RoHS screen done.","Materials compliance evidence (REACH, RoHS); reliability test plan agreed with the customer.","PPAP approved; quality system certified at the production site.","Field ppm at target; 8D loop with the scale-up partner running.","Export licences and compliance in place for new markets."],
+  com:["Customer cost of problem quantified, not only a performance claim; design partner named.","Design partners co-develop and commit to qualification.","First series nomination or supply agreement signed.","Repeat orders at series volume.","Customers outside trucks or licensing revenue."],
+  econ:["Cost at scale estimated against the incumbent.","Cost at scale modelled with yield and scale-up factor.","Cost at volume quoted by the scale-up partner.","Positive margin at series volume.","Cost-down via yield and second source."],
+  fin:["Non-dilutive funding (EIC, Horizon Europe, national) mapped.","Funding through scale-up secured; plan for the gap between pilot and commercial supply.","First-of-a-kind capacity or line reservation financed.",null,null]},
+  add:[{k:"risk",n:"Physics & scale-up risk",s:"Open technical risks that could stop scale-up",drop:"Deep tech only. Retired by G3; remaining yield issues are tracked under Production.",g:[
+   [3,"Top technical risks listed with an experiment to retire each."],
+   [3,"Risks that would stop scale-up retired at prototype scale."],
+   [4,"No open physics risk at line scale; yield drivers understood."],null,null]}]},
+ amc:{off:["dfm"],f:{
+  tech:["Grading, process or condition model accurate on real cores, batteries or fleet data.","Process works on real returns in pilot batches; recovery rate measured.","Grading and refurbishment standard repeatable across operators (e.g. UL 1974-style sorting and grading for batteries).","Recovery rate and output quality stable at volume.","New material streams and asset types."],
+  integ:["Data sources identified: telematics, service records, battery management data.","Fleet and service-network data flowing; battery passport state-of-health data used where available.","Data integration repeatable for new dealers, fleets and brands.",null,null],
+  mfg:[null,"Process route and station layout defined.","Standard work instructions; throughput proven at the pilot site.","Throughput at rate across shifts and sites.","Further sites and material streams."],
+  sup:[null,"Feedstock volumes and quality from workshops, dealers and fleets confirmed.","Feedstock agreements cover 12 months; reverse logistics with approved packaging for damaged batteries (ADR).","Return rate and feedstock quality at plan.","Multi-brand feedstock contracted."],
+  qua:["Waste, ADR transport and data-use rules mapped; Battery Regulation repurposing duties known.","Waste and storage permits applied for; state-of-health evaluation method documented.","Permits granted; second-life products meet the same safety requirements as new; producer obligations taken on.","Compliance audits passed; CO₂ claims meet green-claims rules.","End-of-Life Vehicles Regulation (2026/1738) circularity-passport and recycled-content duties served."],
+  service:[null,null,"Warranty terms and returns process for refurbished or second-life products agreed.","Warranty and returns handled at target cost.","Service and warranty offer across all channels."],
+  com:["Buyer for recovered output identified; value loss per asset quantified.","Offtake LOIs; buyers accept residual values and grading.","Offtake and channel agreements cover planned output.","Repeat offtake at target prices.","Recycled content sold back into production."],
+  econ:["Recovered value per unit vs collection and processing cost estimated.","Margin per recovered unit vs new part or virgin material modelled.","Margin per unit confirmed with feedstock and offtake prices.","Positive margin per unit without subsidies.","Margin held as commodity prices move."]},
+  add:[{k:"lca",n:"Environmental impact & claims",s:"LCA, CO₂e saved per unit",keep:"Circularity only. The CO₂ benefit is part of the product and must hold up to green-claims rules.",g:[
+   [2,"CO₂e saved per unit estimated."],
+   [3,"LCA to ISO 14040/44 on pilot data."],
+   [4,"Verified LCA supports customer and pricing claims."],
+   [4,"CO₂e saved tracked per unit in production."],
+   [5,"Third-party verified claims across material streams."]]}]},
+ asc:{off:[],f:{
+  tech:["Performs in simulation and on a closed site within a defined operational design domain (ODD).","Supervised operation on real routes, hubs or plants; interventions per 1,000 km or operating hour trending down.","Safety performance meets safety-case targets across the ODD, incl. SOTIF (ISO 21448) edge cases.","Driverless or unattended operation where approved; safety KPIs at target.","ODD extended to new lanes, sites and conditions."],
+  integ:["TMS, WMS, yard and vehicle interfaces specified.","Integrated with customer TMS or WMS and the vehicle platform in the pilot.","Connector kit makes onboarding a new customer repeatable.",null,null],
+  dfm:[null,"Standard operating procedures drafted from the pilot.","Deployment playbook standardized; no custom engineering per route or site.",null,null],
+  mfg:[null,"Deployment steps and durations recorded on pilot routes or sites.","Second route or site deployed from the playbook.","Days to deploy a new route or site at plan.","Network rollout across routes, hubs and customers."],
+  sup:[null,"Sensor, compute, carrier and hub partners identified.","Contracts with carriers, hubs and sensor or compute suppliers signed.","Partners deliver capacity at rate.","Partner network covers new regions."],
+  qua:["Safety concept and approval route mapped: ISO 26262, ISO 21448, ISO/SAE 21434; EU ADS rules (2022/1426) or national level-4 law; Machinery Regulation for yard robots.","Safety case under way (UL 4600 structure); approvals for supervised pilots in place.","Safety case accepted; type approval or operating-area approval granted (e.g. German AFGBV: KBA permit, approved operating area, technical supervision); CE under the Machinery Regulation from 20 Jan 2027.","In-service safety monitoring and incident reporting running; cybersecurity monitoring (UN R155).","Approvals extended to new operating areas and countries."],
+  service:[null,null,"Remote or technical supervision staffed; incident response defined.","24/7 supervision and support at target response times.","Remote operations scale with the fleet."],
+  com:["Cost per shipment, per km or per site quantified with shippers or carriers.","Shippers or carriers agree conversion terms after the pilot.","Lanes or sites contracted for year 1.","Repeat lanes; on-time delivery and utilization at target.","New lanes, services and customers won."],
+  econ:["Savings per shipment or per hour vs today modelled on real data.","Cost per km or per shipment in an agreed band, incl. supervision cost.","Cost per km or per site confirmed at launch volume.","Positive gross margin per lane or site.","Margin per lane improves with network effects."]},
+  add:[]},
+ ai:{off:[],f:{
+  tech:["Model beats the current process on historical data with an agreed metric (ML proof of concept).","Holds its performance on live data in shadow mode or with pilot users.","Production release passed evaluation, robustness and fallback tests.","Performance in production monitored; drift handled by retraining.","Platform serves new use cases."],
+  ip:["Data access and rights agreement signed; ownership of models and derivatives agreed.","Rights cover production use and customer data (EU Data Act, GDPR); trade secrets protected.",null,null,null],
+  integ:["Integration path into IT and OT systems identified.","Integrated into pilot users' workflow; identity and hosting agreed with group IT.","Standard APIs or connectors; a new site onboarded in weeks.",null,null],
+  dfm:[null,"Multi-tenant, configurable architecture decided.","Architecture review passed; no per-customer code forks.",null,null],
+  mfg:[null,"Versioned data and reproducible training.","CI/CD, monitoring and rollback live (MLOps readiness review passed).","Automated retraining and drift alerts in production.","Multi-region, multi-customer deployment."],
+  sup:[null,"Production data access and hosting confirmed.","Data pipelines and compute contracted; cost per inference known.","Data-quality agreements with data owners in place.","Data and compute scale with demand."],
+  qua:["EU AI Act risk class screened; lawful basis for data (GDPR) checked.","Data protection impact assessment where personal data is used; TISAX level agreed with the OEM.","TISAX label (often AL2 or AL3), penetration test and AI Act classification documented; high-risk duties from 2 Dec 2027 (Annex III) or 2 Aug 2028 (products).","Incident process, model logs and post-market monitoring running.","AI management system (ISO/IEC 42001) for new markets and customers."],
+  service:[null,null,"SLA, support and incident process agreed with customers.","SLA met; adoption and active users tracked.","Customer success scales with accounts."],
+  com:["Users who feel the pain named; value per user, vehicle or decision quantified.","Pilot users adopt it; buyer agrees conversion terms.","Paid contracts for year 1 signed.","Renewals and expansion (net revenue retention).","New brands, markets or external customers."],
+  econ:["Value per user or vehicle exceeds expected cost to serve.","Cost per inference or transaction measured in the pilot.","Gross margin at launch pricing confirmed.","Gross margin and net revenue retention at target.","Unit cost falls with scale."]},
+  add:[]}
+};
+// Sector gate criteria (in addition to the core criteria). The first item per gate keeps its original key.
+const SGATES={
+ energy:[
+  [["Safety and interoperability baseline confirmed on the test bench","Must"],["Grid capacity and connection route checked for the reference depot or site","Must"],["Battery Regulation and AFIR obligations mapped with owners","Should"]],
+  [["Durability or uptime targets met on first vehicles or sites","Must"],["Interoperability tested with eTrucks from at least two brands and the OCPP backend","Must"],["Anchor fleet commits charging volume or offtake","Should"]],
+  [["Product certified (UN R100 or charger conformity); installation partners standardized","Must"],["Grid connections and permits secured for year-1 sites","Must"],["Battery passport and supply-chain due-diligence data flows set up","Must"],["Asset-financing route agreed (SPV, lease or project finance)","Should"]],
+  [["Rollout pipeline and battery-passport data cover the next 12 months","Must"],["Uptime and utilization at business-case level across live sites","Must"],["O&M and spare-parts SLA met","Should"]]],
+ dt:[
+  [["Freedom-to-operate check shows no blocking patents","Must"],["Effect reproduced outside the originating lab","Must"],["Export-control classification against the EU dual-use list done","Should"]],
+  [["Scale-up partner shortlisted and cost at scale estimated","Must"],["Prototype meets spec in a truck or plant environment (TRL 6)","Must"],["Non-dilutive funding for scale-up applied for","Should"]],
+  [["Capacity reserved at the scale-up partner","Must"],["Process frozen and transferred; yield at line scale within plan","Must"],["Automotive qualification done (PPAP; IATF 16949 at the production site where supplied as an automotive part)","Must"]],
+  [["Second source or licensing route defined","Must"],["Field ppm and yield stable for 3 months","Must"],["Second application or customer outside trucks qualified","Should"]]],
+ amc:[
+  [["Recovery rate or condition model proven on real feedstock or fleet data","Must"],["Value loss per asset quantified (€ and CO₂e) with a sponsor","Must"],["Waste, ADR transport and data-use rules mapped","Should"]],
+  [["Feedstock volumes or fleet-data access from workshops and customers confirmed","Must"],["Offtaker or channel confirmed for recovered output","Must"],["LCA on pilot data to ISO 14040/44","Should"]],
+  [["Waste, transport and data-use permissions granted","Must"],["Grading and refurbishment standard documented; second-life products meet the same safety requirements as new","Must"],["Reverse-logistics partner with approved packaging for damaged batteries","Should"]],
+  [["Offtake and channel agreements cover planned output","Must"],["Recovery rate and margin per unit at plan for 3 months","Must"],["Ready for End-of-Life Vehicles Regulation circularity-passport and recycled-content duties","Should"]]],
+ asc:[
+  [["Savings per shipment or site shown on real operating data","Must"],["Operational design domain defined and tested in simulation or on a closed site","Must"],["Approval route mapped (EU ADS rules, national level-4 law, Machinery Regulation)","Should"]],
+  [["Supervised pilot meets safety and KPI targets against baseline","Must"],["Safety case structure and hazard analysis in place (ISO 26262, ISO 21448)","Must"],["Interventions per 1,000 km or operating hour trending to target","Should"]],
+  [["Safety case accepted and required approvals granted","Must"],["Technical supervision or remote operations staffed and tested","Must"],["Cybersecurity (ISO/SAE 21434) and software-update processes in place","Should"]],
+  [["Deployment playbook proven on a second route or site","Must"],["In-service safety monitoring and incident reporting running for 3 months","Must"],["Insurance and liability terms in place for driverless operation","Should"]]],
+ ai:[
+  [["Data access and data-rights agreement signed","Must"],["Model beats the current process on historical data with an agreed metric","Must"],["AI Act risk class and GDPR basis screened","Should"]],
+  [["Business KPI improved in shadow or pilot mode","Must"],["Integration path and hosting agreed with group IT","Must"],["Data protection impact assessment done where personal data is used","Should"]],
+  [["Security review, TISAX and AI Act classification complete","Must"],["Monitoring, rollback and retraining tested before release","Must"],["SLA and support process agreed with customers","Should"]],
+  [["Monitoring, retraining and incident process live","Must"],["Performance stable in production for 3 months with drift alerts","Must"],["Cost per inference within the business-case band at current volume","Should"]]]
+};
 const OLDKEYS=["tech","dfm","mfg","sup","qua","com","fin","org"];
-const TOOL_MAP={ip:["D3","A1","T02"],integ:["A4","S5","E2","T05"],econ:["T08","T06","E5"],service:["T16","T15","T14"],scale:["T17","T13","S4","E3"]};
+const TOOL_MAP={grid:["E3","E5","T13"],risk:["D1","T04","D2"],lca:["X4","X5","T08"],ip:["D3","A1","T02"],integ:["A4","S5","E2","T05"],econ:["T08","T06","E5"],service:["T16","T15","T14"],scale:["T17","T13","S4","E3"]};
 const gateTarget=(d,gi)=>d.g[gi]?d.g[gi][0]:null;
 const GATES=[
  {g:"G1",n:"PoC → Pilot",c:[["Success criteria from the PoC charter met or explained","Must"],["Business value quantified with real data","Must"],["Named business owner who will fund the pilot","Must"],["IP, data rights and confidentiality agreed","Must"],["Export-control and sanctions screening done","Should"],["Pilot customers, sites or vehicles identified","Should"]]},
@@ -432,14 +535,20 @@ function fmtNum(v){if(v===null||v===undefined||v==="")return"—";const n=+v;ret
 function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,3200)}
 
 // ---------- derived metrics ----------
+// The dimension catalogue for a sector: shared dimensions with the sector's evidence per gate, plus its own.
+function catalog(sk){
+  const sr=SEC_R[sk]||{f:{},add:[],off:[]};
+  return [...RDIMS.filter(d=>!(sr.off||[]).includes(d.k)).map(d=>{const f=sr.f[d.k];return f?{...d,g:d.g.map((x,i)=>x&&f[i]?[x[0],f[i]]:x),sx:true}:d}),
+    ...(sr.add||[]).map(d=>({...d,own:true}))];
+}
 function dimsOf(c,gi=c.phase||0){
   const off=c.dimOff||{},sc=dscOf(c),cs=c.cscores||{},out=[];
-  RDIMS.forEach(d=>{if(off[d.k]||!d.g[gi])return;const[n,sub]=dimLabel(d,c.sector);const prev=gi>0&&d.g[gi-1];
-    out.push({key:d.k,dk:d.k,n,s:sub,t:d.g[gi][0],focus:d.g[gi][1],v:+(sc[d.k]??1),isNew:gi>0&&!prev})});
+  catalog(c.sector).forEach(d=>{if(off[d.k]||!d.g[gi])return;const[n,sub]=dimLabel(d,c.sector);const prev=gi>0&&d.g[gi-1];
+    out.push({key:d.k,dk:d.k,n,s:sub,t:d.g[gi][0],focus:d.g[gi][1],v:+(sc[d.k]??1),isNew:gi>0&&!prev,own:!!d.own})});
   live(c.cdims).sort((a,b)=>(a[1].at||"").localeCompare(b[1].at||"")).forEach(([id,x])=>out.push({key:"c_"+id,id,n:x.n,s:x.s||"Added for this company",t:+((x.tg&&x.tg[gi])??x.t??3),v:+(cs[id]??1),custom:true}));
   return out;
 }
-function droppedAt(c,gi){const off=c.dimOff||{};return gi>0?RDIMS.filter(d=>!off[d.k]&&d.g[gi-1]&&!d.g[gi]):[]}
+function droppedAt(c,gi){const off=c.dimOff||{};return gi>0?catalog(c.sector).filter(d=>!off[d.k]&&d.g[gi-1]&&!d.g[gi]):[]}
 function readiness(c,gi=c.phase||0){
   const dims=dimsOf(c,gi),n=dims.length;
   const gaps=dims.map(d=>({d,gap:d.t-d.v})).filter(x=>x.gap>0).sort((a,b)=>b.gap-a.gap);
@@ -453,13 +562,14 @@ function gateItems(c,gi){
   const g=GATES[gi],s=SEC(c.sector);
   const off=c.gOff||{};
   const base=g.c.map((x,j)=>({t:x[0],k:x[1],key:g.g+"-"+j,type:"core"}));
-  base.push({t:s.gates[gi],k:"Must",key:g.g+"-sx-"+s.k,type:"sx"});
+  sxItems(s.k,gi).forEach(x=>base.push(x));
   const items=base.filter(x=>!off[x.key]);
   live(c.custom).filter(([,x])=>x.g===g.g).sort((a,b)=>(a[1].at||"").localeCompare(b[1].at||"")).forEach(([id,x])=>items.push({t:x.t,k:x.k,key:g.g+"-c-"+id,type:"cu",cid:id}));
   return items;
 }
 function gateRemoved(c,gi){const g=GATES[gi],s=SEC(c.sector),off=c.gOff||{};
-  return [...g.c.map((x,j)=>({t:x[0],k:x[1],key:g.g+"-"+j})),{t:s.gates[gi],k:"Must",key:g.g+"-sx-"+s.k}].filter(x=>off[x.key])}
+  return [...g.c.map((x,j)=>({t:x[0],k:x[1],key:g.g+"-"+j})),...sxItems(s.k,gi)].filter(x=>off[x.key])}
+function sxItems(sk,gi){const g=GATES[gi].g;return ((SGATES[sk]||[])[gi]||[]).map((x,j)=>({t:x[0],k:x[1],key:j?g+"-sx-"+sk+"-"+j:g+"-sx-"+sk,type:"sx"}))}
 function gateProgress(c,gi){
   const items=gateItems(c,gi),tk=c.ticks||{};
   const musts=items.filter(x=>x.k==="Must");
@@ -737,13 +847,13 @@ function renderCompany(c){
 
   const hist=Object.entries(c.rhist||{}).sort((a,b)=>a[0].localeCompare(b[0]));
   const vg=rgv??c.phase,rv=readiness(c,vg),isCur=vg===c.phase,drp=droppedAt(c,vg);
-  const ready=`<section aria-labelledby="hReady"><div class="sechead"><div><span class="label">2 · Readiness</span><h2 id="hReady">Readiness against ${GCOLS[vg]==="Scale"?"the scale review":GCOLS[vg]}</h2><p class="lede">The dimensions change as the company moves through the gates: some are assessed at every gate with a rising bar, some only matter early (IP, integration, design freeze) and some only start at industrialization or launch (production, supply chain, service, next markets). Score 1 (not started) to 5 (proven at scale); a score carries over when a dimension stays in play.</p></div>${c.scoredAt?`<span class="mono muted">Last scored ${rel(c.scoredAt)}</span>`:""}</div>
+  const ready=`<section aria-labelledby="hReady"><div class="sechead"><div><span class="label">2 · Readiness</span><h2 id="hReady">Readiness against ${GCOLS[vg]==="Scale"?"the scale review":GCOLS[vg]}</h2><p class="lede">Dimensions and their evidence follow the gate and the ${esc(s.short)} sector: shared dimensions say what this sector must show at each gate, and sector-only dimensions are tagged. They also change as the company moves through the gates: some are assessed at every gate with a rising bar, some only matter early (IP, integration, design freeze) and some only start at industrialization or launch (production, supply chain, service, next markets). Score 1 (not started) to 5 (proven at scale); a score carries over when a dimension stays in play.</p></div>${c.scoredAt?`<span class="mono muted">Last scored ${rel(c.scoredAt)}</span>`:""}</div>
     <div class="row" role="group" aria-label="Show readiness for gate"><span class="label">Show gate</span>${GCOLS.map((g,i)=>`<button class="chip" type="button" data-rgv="${i}" aria-pressed="${i===vg}">${g}${i===c.phase?" · next":""}</button>`).join("")}${isCur?"":`<span class="mono muted">Preview: the company's next gate is ${GCOLS[c.phase]}.</span>`}</div>
     <div class="ready">
-      <div class="panel"><div class="sliders">${rv.dims.length?rv.dims.map((d,j)=>`<div class="sl ${d.custom?"cu":""}"><label for="d${j}">${esc(d.n)}${d.isNew?` <span class="tag s" style="font-size:.62rem">New at ${GCOLS[vg]}</span>`:""}<small>${esc(d.custom?d.s+" · own dimension":d.focus)}</small></label><input type="range" id="d${j}" min="1" max="5" step="1" value="${d.v}" ${dis}><output id="o${j}" class="${d.v<d.t?"gap":""}">${d.v} / ${d.t}</output>${ro?"<span></span>":`<button class="xbtn" type="button" data-rmdim="${esc(d.key)}" aria-label="Remove ${esc(d.n)}" title="Remove this dimension for this company">×</button>`}</div>`).join(""):`<p class="muted">No readiness dimensions at this gate. Add one below or restore a framework dimension.</p>`}</div>
+      <div class="panel"><div class="sliders">${rv.dims.length?rv.dims.map((d,j)=>`<div class="sl ${d.custom?"cu":""}"><label for="d${j}">${esc(d.n)}${d.own?` <span class="tag" style="font-size:.62rem">${esc(s.short)}</span>`:""}${d.isNew?` <span class="tag s" style="font-size:.62rem">New at ${GCOLS[vg]}</span>`:""}<small>${esc(d.custom?d.s+" · own dimension":d.focus)}</small></label><input type="range" id="d${j}" min="1" max="5" step="1" value="${d.v}" ${dis}><output id="o${j}" class="${d.v<d.t?"gap":""}">${d.v} / ${d.t}</output>${ro?"<span></span>":`<button class="xbtn" type="button" data-rmdim="${esc(d.key)}" aria-label="Remove ${esc(d.n)}" title="Remove this dimension for this company">×</button>`}</div>`).join(""):`<p class="muted">No readiness dimensions at this gate. Add one below or restore a framework dimension.</p>`}</div>
         ${drp.length?`<div class="removed" style="padding:0"><span class="label">No longer assessed from ${GCOLS[vg]}</span>${drp.map(d=>`<div><span><b style="color:var(--ink);font-weight:500">${esc(dimLabel(d,c.sector)[0])}</b> · ${esc(d.drop||"")}</span></div>`).join("")}</div>`:""}
         ${ro?"":`<form class="addim" id="dimForm" aria-label="Add readiness dimension"><div class="field"><label class="label" for="ndN">New dimension</label><input type="text" id="ndN" maxlength="60" required placeholder="e.g. Homologation"></div><div class="field"><label class="label" for="ndS">What it covers</label><input type="text" id="ndS" maxlength="100" placeholder="e.g. Type approval, test reports"></div><div class="field"><label class="label" for="ndT">Gate min.</label><select id="ndT" style="width:auto">${[1,2,3,4,5].map(v=>`<option ${v===3?"selected":""}>${v}</option>`).join("")}</select></div><button class="btn small" type="submit" style="margin-bottom:4px">Add</button></form>`}
-        ${(()=>{const off=RDIMS.filter(d=>(c.dimOff||{})[d.k]);return off.length?`<div class="removed" style="padding:0"><span class="label">Removed for this company</span>${off.map(d=>`<div><s>${esc(dimLabel(d,c.sector)[0])}</s>${ro?"":`<button class="link" type="button" data-rsdim="${d.k}">Restore</button>`}</div>`).join("")}</div>`:""})()}
+        ${(()=>{const off=catalog(c.sector).filter(d=>(c.dimOff||{})[d.k]);return off.length?`<div class="removed" style="padding:0"><span class="label">Removed for this company</span>${off.map(d=>`<div><s>${esc(dimLabel(d,c.sector)[0])}</s>${ro?"":`<button class="link" type="button" data-rsdim="${d.k}">Restore</button>`}</div>`).join("")}</div>`:""})()}
       </div>
       <div class="panel">
         <svg id="radar" viewBox="-60 0 540 380" role="img" aria-label="Readiness radar chart" style="width:100%;max-width:520px;align-self:center">${radar(rv.dims)}</svg>
@@ -754,10 +864,10 @@ function renderCompany(c){
     ${evoTable(c,vg)}
   </section>`;
 
-  const gates=`<section aria-labelledby="hGates"><div class="sechead"><div><span class="label">3 · Gates</span><h2 id="hGates">Gate criteria</h2><p class="lede">Core criteria, the ${esc(s.short)} must-have (orange) and criteria you add for this company (teal). Must-haves block the gate; should-haves can pass with a dated plan. Remove any criterion that doesn't apply with ×; removed framework criteria can be restored.</p></div></div>
+  const gates=`<section aria-labelledby="hGates"><div class="sechead"><div><span class="label">3 · Gates</span><h2 id="hGates">Gate criteria</h2><p class="lede">Core criteria that apply to every company, the ${esc(s.short)} criteria for this sector (orange) and criteria you add for this company (teal). Must-haves block the gate; should-haves can pass with a dated plan. Remove any criterion that doesn't apply with ×; removed framework criteria can be restored.</p></div></div>
     <div class="gates">${GATES.map((g,gi)=>{const gp=gateProgress(c,gi),tk=c.ticks||{},cls=gi===c.phase?"next":gi<c.phase?"passed":"";
       return `<div class="gatecard ${cls}"><header><div class="row"><span class="g">${g.g}</span><h3>${g.n}</h3>${gi===c.phase?`<span class="tag s">Next gate</span>`:gi<c.phase?`<span class="tag">Passed</span>`:""}</div><span class="prog">${gp.done}/${gp.total}${gp.mustDone===gp.mustTotal?" · musts met":` · ${gp.mustDone}/${gp.mustTotal} musts`}</span></header>
-      <ul>${gp.items.map(x=>`<li class="${x.type}"><label><input type="checkbox" data-tick="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}" ${tk[x.key]?"checked":""} ${dis}><span>${esc(x.t)}</span><span class="kind">${x.type==="sx"?esc(s.short.toUpperCase())+" · MUST":x.type==="cu"?"OWN · "+x.k.toUpperCase():x.k.toUpperCase()}</span></label>${ro?"":x.type==="cu"?`<button class="x" type="button" data-delc="${esc(x.cid)}" aria-label="Remove criterion" title="Remove criterion">×</button>`:`<button class="x" type="button" data-hidec="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}" aria-label="Remove criterion" title="Remove criterion">×</button>`}</li>`).join("")||`<li class="muted" style="font-size:.85rem">No criteria. Add one below.</li>`}</ul>
+      <ul>${gp.items.map(x=>`<li class="${x.type}"><label><input type="checkbox" data-tick="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}" ${tk[x.key]?"checked":""} ${dis}><span>${esc(x.t)}</span><span class="kind">${x.type==="sx"?esc(s.short.toUpperCase())+" · "+x.k.toUpperCase():x.type==="cu"?"OWN · "+x.k.toUpperCase():x.k.toUpperCase()}</span></label>${ro?"":x.type==="cu"?`<button class="x" type="button" data-delc="${esc(x.cid)}" aria-label="Remove criterion" title="Remove criterion">×</button>`:`<button class="x" type="button" data-hidec="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}" aria-label="Remove criterion" title="Remove criterion">×</button>`}</li>`).join("")||`<li class="muted" style="font-size:.85rem">No criteria. Add one below.</li>`}</ul>
       ${(()=>{const rm=gateRemoved(c,gi);return rm.length?`<div class="removed"><span class="label">Removed for this company</span>${rm.map(x=>`<div><s>${esc(x.t)}</s>${ro?"":`<button class="link" type="button" data-showc="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}">Restore</button>`}</div>`).join("")}</div>`:""})()}
       ${ro?"":`<form data-addc="${g.g}"><input type="text" id="nc-${g.g}" placeholder="Add a criterion for this company" maxlength="160" aria-label="New ${g.g} criterion"><select id="nk-${g.g}" aria-label="Criterion type"><option>Must</option><option>Should</option></select><button class="btn small" type="submit">Add</button></form>`}</div>`}).join("")}</div></section>`;
 
@@ -810,13 +920,13 @@ function toolsFor(dk,sk){
 }
 function evoTable(c,vg){
   const off=c.dimOff||{},sc=dscOf(c);
-  const rows=RDIMS.map(d=>{const[n]=dimLabel(d,c.sector);const first=d.g.findIndex(Boolean),last=d.g.length-1-[...d.g].reverse().findIndex(Boolean);
-    const kind=first===0&&last===4?"Every gate":first>0?`From ${GCOLS[first]}`:`Until ${GCOLS[last]}`;
+  const rows=catalog(c.sector).map(d=>{const[n]=dimLabel(d,c.sector);const first=d.g.findIndex(Boolean),last=d.g.length-1-[...d.g].reverse().findIndex(Boolean);
+    const kind=(first===0&&last===4?"Every gate":first>0?`From ${GCOLS[first]}`:`Until ${GCOLS[last]}`)+(d.own?` · ${SEC(c.sector).short} only`:d.sx?` · ${SEC(c.sector).short} evidence`:"");
     return `<tr class="${off[d.k]?"muted":""}"><td style="min-width:220px">${off[d.k]?`<s>${esc(n)}</s> <small class="muted">removed</small>`:esc(n)}<small class="muted" style="display:block;font-size:.74rem">${kind}</small></td>${d.g.map((x,i)=>`<td class="num mono ${i===vg?"hlc":""}" title="${x?esc(GCOLS[i]+": "+x[1]):"Not assessed at "+GCOLS[i]}">${x?`<b class="${(sc[d.k]??1)<x[0]&&!off[d.k]?"bad":""}">${x[0]}</b>${i>0&&!d.g[i-1]?` <span class="tag s" style="font-size:.58rem;padding:0 4px">new</span>`:""}`:`<span class="muted">—</span>`}</td>`).join("")}<td class="num mono">${off[d.k]?"—":esc(sc[d.k]??1)}</td></tr>`}).join("");
   const cu=live(c.cdims).map(([id,x])=>`<tr><td>${esc(x.n)}<small class="muted" style="display:block;font-size:.74rem">Own dimension · every gate</small></td>${GCOLS.map((g,i)=>`<td class="num mono ${i===vg?"hlc":""}">${esc((x.tg&&x.tg[i])??x.t??3)}</td>`).join("")}<td class="num mono">${esc((c.cscores||{})[id]??1)}</td></tr>`).join("");
   return `<details class="evo"${vg!==c.phase?" open":""}><summary><span class="label">How readiness changes through the gates</span> <span class="muted" style="font-size:.84rem">Minimum score per gate; red where the current score is below it. Hover a number for what that gate must see.</span></summary>
     <div class="tablewrap" style="margin-top:10px"><table class="evot"><thead><tr><th>Dimension</th>${GCOLS.map((g,i)=>`<th class="num ${i===vg?"hlc":""}">${g}</th>`).join("")}<th class="num">Score now</th></tr></thead><tbody>${rows}${cu}</tbody></table></div>
-    <p class="muted" style="font-size:.78rem;margin-top:8px">Built on the DoD Manufacturing Readiness Level Deskbook (nine threads assessed together, lowest thread sets the level), TRL and machine-learning TRLs, integration readiness levels, VDA Maturity Level Assurance for new parts, APQP/PPAP, EVT–DVT–PVT build stages, the KTH Innovation Readiness Level and ARENA's Commercial Readiness Index. Minimum scores are starting assumptions for team review.</p></details>`;
+    <p class="muted" style="font-size:.78rem;margin-top:8px">Built on the DoD Manufacturing Readiness Level Deskbook (nine threads assessed together, lowest thread sets the level), TRL and machine-learning TRLs, integration readiness levels, VDA Maturity Level Assurance for new parts, APQP/PPAP, EVT–DVT–PVT build stages, the KTH Innovation Readiness Level and ARENA's Commercial Readiness Index. Sector evidence draws on the EU Battery Regulation, UN R100, MCS/ISO 15118, the EU dual-use list and IATF 16949, the Battery Regulation's repurposing rules, ADR and the End-of-Life Vehicles Regulation, ISO 26262/21448, UL 4600, EU ADS rules, the German AFGBV and the Machinery Regulation, and the EU AI Act, TISAX, GDPR and the Data Act. Minimum scores are starting assumptions for team review.</p></details>`;
 }
 function shortName(n){return n.length>18?n.slice(0,17).trim()+"…":n}
 function radar(dims){
@@ -887,7 +997,7 @@ function bindCompany(id,c){
       write(id,patch,`${d.n} scored ${v} (was ${old})`);render.force=true;render()}});
   document.querySelectorAll('[data-rmdim]').forEach(b=>b.onclick=()=>{const d=rd.dims.find(x=>x.key===b.dataset.rmdim);if(!d)return;
     write(id,d.custom?{cdims:{[d.id]:{del:true}}}:{dimOff:{[d.dk]:true}},`Readiness dimension removed: ${d.n}`);render.force=true;render()});
-  document.querySelectorAll('[data-rsdim]').forEach(b=>b.onclick=()=>{const d=RDIMS.find(x=>x.k===b.dataset.rsdim);
+  document.querySelectorAll('[data-rsdim]').forEach(b=>b.onclick=()=>{const d=catalog(c.sector).find(x=>x.k===b.dataset.rsdim);
     write(id,{dimOff:{[d.k]:false}},`Readiness dimension restored: ${dimLabel(d,c.sector)[0]}`);render.force=true;render()});
   const dfm=$('dimForm');if(dfm)dfm.onsubmit=e=>{e.preventDefault();const n=$('ndN').value.trim();if(!n)return;const t=+$('ndT').value;
     write(id,{cdims:{[uid()]:{n,s:$('ndS').value.trim(),t,at:new Date().toISOString()}}},`Readiness dimension added: ${n} (gate minimum ${t})`);render.force=true;render()};
