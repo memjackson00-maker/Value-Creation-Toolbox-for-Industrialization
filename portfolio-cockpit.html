@@ -125,7 +125,7 @@ input:disabled,select:disabled,textarea:disabled{opacity:.7}
 /* tables */
 .tablewrap{overflow-x:auto;border:1px solid var(--line-strong);background:var(--panel)}
 table{border-collapse:collapse;width:100%}
-.reg{min-width:980px}
+.reg{min-width:1040px}
 .kpit{min-width:860px}
 th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
 thead th{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--bg);white-space:nowrap}
@@ -234,6 +234,19 @@ svg text{font-family:var(--f-mono)}
 .kpit .logrow{display:flex;gap:6px;align-items:center}
 .kpit .logrow input[type=date]{width:140px}
 
+/* TRL scale */
+.trlwrap{display:flex;flex-direction:column;gap:10px}
+.trl{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px}
+.trl button{appearance:none;border:1px solid var(--line-strong);background:var(--panel);padding:8px 2px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;min-width:0}
+.trl button b{font-family:var(--f-display);font-size:1.25rem;line-height:1;font-variant-numeric:tabular-nums}
+.trl button span{font-family:var(--f-mono);font-size:.58rem;color:var(--muted);letter-spacing:.04em}
+.trl button.lit{background:var(--accent-soft);border-color:var(--accent)}
+.trl button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.trl button[aria-pressed="true"] span{color:var(--on-accent)}
+.trl button.exp::after{content:"";position:absolute;left:3px;right:3px;bottom:3px;height:3px;background:var(--signal)}
+.trl button:hover:not(:disabled){border-color:var(--accent)}
+.trl button:disabled{cursor:default}
+.trlnote{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:.88rem}
 .confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.88rem}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:.88rem;z-index:20;max-width:calc(100% - 32px)}
 footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;max-width:85ch;display:flex;flex-direction:column;gap:6px}
@@ -307,6 +320,11 @@ const GATES=[
  {g:"G4",n:"Launch → Scale",c:[["Target pace reached (run-at-rate or rollout rate)","Must"],["Field quality or uptime at target for 3 months","Must"],["Contribution margin positive at current volume","Must"],["Service and support network ready","Should"],["Cost-down roadmap with quantified steps","Should"],["Second brand, customer or market in qualified pipeline","Should"]]}
 ];
 
+const TRL_DEF=["Basic principles observed","Technology concept formulated","Experimental proof of concept","Technology validated in lab","Technology validated in relevant environment","Technology demonstrated in relevant environment","System prototype demonstrated in operational environment","System complete and qualified","Actual system proven in operational environment"];
+const TRL_EXP=[[4,6],[7,7],[8,8],[9,9],[9,9]];
+const expTxt=ph=>{const[a,b]=TRL_EXP[ph];return a===b?"TRL "+a:"TRL "+a+"–"+b};
+function trlState(c){if(!has(c.trl))return null;const t=+c.trl,[a,b]=TRL_EXP[c.phase||0];return t<a?["v-stop","Below "+expTxt(c.phase||0)]:t>b?["v-go","Ahead of phase"]:["v-go","In phase band"]}
+const has=v=>v!==undefined&&v!==null&&v!=="";
 const STATUS={on:["On track","st-on"],risk:["At risk","st-risk"],off:["Off track","st-off"]};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -438,6 +456,7 @@ function sorted(list){
     status:(a,b)=>(st[a.c.status]??3)-(st[b.c.status]??3),
     gap:(a,b)=>readiness(b.c).total-readiness(a.c).total,
     gate:(a,b)=>(a.c.nextGate||"9999").localeCompare(b.c.nextGate||"9999"),
+    trl:(a,b)=>(+(b.c.trl||0))-(+(a.c.trl||0)),
     updated:(a,b)=>(b.c.updatedAt||"").localeCompare(a.c.updatedAt||"")
   };
   return list.sort(by[filt.sort]||by.phase);
@@ -479,6 +498,7 @@ function renderPortfolio(){
       <div class="field half"><label class="label" for="nLead">Deal lead</label><input type="text" id="nLead" maxlength="60"></div>
       <div class="field"><label class="label" for="nGate">Next gate date</label><input type="date" id="nGate"></div>
       <div class="field"><label class="label" for="nRun">Runway (months)</label><input type="number" id="nRun" min="0" step="1"></div>
+      <div class="field half"><label class="label" for="nTrl">TRL (technology readiness)</label><select id="nTrl"><option value="">Not assessed yet</option>${TRL_DEF.map((t,i)=>`<option value="${i+1}">TRL ${i+1} · ${esc(t)}</option>`).join("")}</select></div>
     </div>
     <div class="row"><button class="btn primary" type="submit">Add company</button><button class="btn" type="button" id="addCancel">Cancel</button></div>
   </form>`:"";
@@ -519,17 +539,18 @@ function cardHtml(id,c){
     <span class="cn">${esc(c.name||"Untitled")}</span>
     <span class="row" style="gap:6px"><span class="tag">${esc(s.short)}</span><span class="pill ${st[1]}">${st[0]}</span></span>
     <span class="meter ${r.total?"gap":""}" title="Readiness ${r.avg.toFixed(1)} vs gate minimum ${r.tAvg.toFixed(1)}"><i style="width:${w}%"></i></span>
-    <span class="meta"><span>${r.met}/8 dims at gate</span>${gp?`<span>${gp.mustDone}/${gp.mustTotal} musts ${PHASES[c.phase].gate}</span>`:"<span>Scaling</span>"}</span>
+    <span class="meta"><span class="${(()=>{const t=trlState(c);return t&&t[0]==="v-stop"?"bad":""})()}">${has(c.trl)?"TRL "+esc(c.trl):"TRL —"} · ${r.met}/8 dims at gate</span>${gp?`<span>${gp.mustDone}/${gp.mustTotal} musts ${PHASES[c.phase].gate}</span>`:"<span>Scaling</span>"}</span>
     <span class="meta"><span class="${d!==null&&d<0?"bad":""}">${c.nextGate?(PHASES[c.phase].gate||"Review")+" "+fmtDate(c.nextGate):"No gate date"}</span>${sg.overdue?`<span class="bad">${sg.overdue} overdue</span>`:""}${sg.runwayLow?`<span class="bad">${esc(c.runway)} mo runway</span>`:""}</span>
   </button>`;
 }
 function registerHtml(list){
   const th=(k,l,cls="")=>`<th class="${cls}"><button type="button" data-sort="${k}" aria-label="Sort by ${l}">${l}${filt.sort===k?" ▾":""}</button></th>`;
-  return `<div class="tablewrap"><table class="reg"><thead><tr>${th("name","Company")}<th>Sector</th>${th("phase","Phase")}${th("status","Status")}${th("gap","Readiness","num")}<th class="num">Gate musts</th>${th("gate","Next gate")}<th class="num">KPIs on target</th><th class="num">Runway</th><th class="num">Open actions</th>${th("updated","Updated")}</tr></thead><tbody>${list.map(({id,c})=>{
+  return `<div class="tablewrap"><table class="reg"><thead><tr>${th("name","Company")}<th>Sector</th>${th("phase","Phase")}${th("trl","TRL","num")}${th("status","Status")}${th("gap","Readiness","num")}<th class="num">Gate musts</th>${th("gate","Next gate")}<th class="num">KPIs on target</th><th class="num">Runway</th><th class="num">Open actions</th>${th("updated","Updated")}</tr></thead><tbody>${list.map(({id,c})=>{
     const r=readiness(c),s=SEC(c.sector),st=STATUS[c.status]||STATUS.on,sg=signals(c),gp=c.phase<4?gateProgress(c,c.phase):null,d=daysTo(c.nextGate);
     return `<tr class="pick" data-co="${esc(id)}" tabindex="0"><td class="nm">${esc(c.name||"Untitled")}${c.lead?`<small class="muted" style="display:block;font-family:var(--f-body);font-weight:400;font-size:.78rem">${esc(c.lead)}</small>`:""}</td>
     <td><span class="tag">${esc(s.short)}</span></td>
     <td class="mono">${(c.phase||0)+1} ${PHASES[c.phase||0].n}</td>
+    <td class="num mono">${(()=>{const t=trlState(c);return has(c.trl)?`<span class="${t&&t[0]==="v-stop"?"bad":""}" title="${esc(t?t[1]:"")}">${esc(c.trl)}</span>`:"—"})()}</td>
     <td><span class="pill ${st[1]}">${st[0]}</span></td>
     <td class="num"><span class="verdict ${r.verdict[0]}" style="font-size:.74rem">${r.avg.toFixed(1)} · ${r.total?"−"+r.total+" pts":"ready"}</span></td>
     <td class="num mono">${gp?`${gp.mustDone}/${gp.mustTotal}`:"—"}</td>
@@ -563,7 +584,7 @@ async function createCompany(){
   const sk=$('nSec').value,s=SEC(sk),ph=+$('nPh').value;
   const now=new Date().toISOString();
   const kpis={};s.kpis.forEach((n,i)=>kpis[uid()]={n,unit:"",base:"",target:"",dir:"up",ord:i,hist:{}});
-  const doc={name,sector:sk,phase:ph,status:"on",lead:$('nLead').value.trim(),nextGate:$('nGate').value||"",runway:$('nRun').value===""?"":+$('nRun').value,summary:"",
+  const doc={name,sector:sk,phase:ph,status:"on",lead:$('nLead').value.trim(),nextGate:$('nGate').value||"",runway:$('nRun').value===""?"":+$('nRun').value,trl:$('nTrl').value===""?"":+$('nTrl').value,summary:"",
     scores:DIMS.map(()=>1),rhist:{},ticks:{},custom:{},kpis,actions:{},log:logEntry(`Added to the tracker in phase ${ph+1} ${PHASES[ph].n}`),createdAt:now,updatedAt:now,updatedBy:me?.id||null};
   const btn=document.querySelector('#addForm [type=submit]');btn.disabled=true;
   try{
@@ -597,13 +618,19 @@ function renderCompany(c){
       <div class="field"><label class="label" for="pLead">Deal lead</label><input type="text" id="pLead" value="${esc(c.lead)}" maxlength="60" ${dis}></div>
       <div class="field"><label class="label" for="pGate">Next ${PHASES[c.phase].gate||"review"} date</label><input type="date" id="pGate" value="${esc(c.nextGate)}" ${dis}></div>
       <div class="field"><label class="label" for="pRun">Runway (months)</label><input type="number" id="pRun" min="0" step="1" value="${esc(c.runway)}" ${dis}></div>
-      <div class="field"><label class="label" for="pStage">Maturity reference</label><input type="text" id="pStage" value="${esc(s.mat[c.phase])}" disabled></div>
+      <div class="field half"><label class="label" for="pTrl">TRL (technology readiness)</label><select id="pTrl" ${dis}><option value="" ${has(c.trl)?"":"selected"}>Not assessed yet</option>${TRL_DEF.map((t,i)=>`<option value="${i+1}" ${+c.trl===i+1?"selected":""}>TRL ${i+1} · ${esc(t)}</option>`).join("")}</select></div>
+      <div class="field half"><label class="label" for="pStage">Phase maturity reference</label><input type="text" id="pStage" value="${esc(s.mat[c.phase])} · expected ${expTxt(c.phase)}" disabled></div>
       <div class="field wide"><label class="label" for="pSum">Current situation &amp; next milestone</label><textarea id="pSum" maxlength="1200" ${dis} placeholder="What changed since the last review, and what the company must show next.">${esc(c.summary)}</textarea></div>
     </div>
   </form>`;
 
   const track=`<section aria-labelledby="hTrack"><div class="sechead"><div><span class="label">1 · Phase</span><h2 id="hTrack">Phase ${c.phase+1} of 5 · ${PHASES[c.phase].n}</h2><p class="lede">${esc(s.ph[c.phase])}</p></div></div>
     <div class="track" role="group" aria-label="Set phase">${PHASES.map((p,i)=>`<button class="stage ${i<c.phase?"done":""}" type="button" data-ph="${i}" aria-pressed="${i===c.phase}" ${dis}><span class="num">Phase ${i+1}${i<c.phase?" · passed":""}</span><span class="nm">${p.n}</span><span class="tg">${esc(s.mat[i])}</span>${p.gate?`<span class="gate" aria-label="Gate ${p.gate}"><b>${p.gate}</b></span>`:""}</button>`).join("")}</div>
+    <div class="panel trlwrap" aria-labelledby="hTrl">
+      <div class="sechead"><div><span class="label" id="hTrl">Technology readiness level</span><span class="trlnote">${has(c.trl)?`<b>TRL ${esc(c.trl)} · ${esc(TRL_DEF[c.trl-1])}</b>`:`<b>Not assessed yet</b>`}${(()=>{const t=trlState(c);return t?`<span class="verdict ${t[0]}" style="font-size:.74rem">${t[1]}</span>`:""})()}</span></div><span class="mono muted">Expected in ${PHASES[c.phase].n}: ${expTxt(c.phase)}${c.trlAt?` · set ${rel(c.trlAt)}`:""}</span></div>
+      <div class="trl" role="group" aria-label="Set TRL">${TRL_DEF.map((t,i)=>{const n=i+1,[a,b]=TRL_EXP[c.phase];return `<button type="button" data-trl="${n}" title="TRL ${n}: ${esc(t)}" aria-pressed="${+c.trl===n}" class="${has(c.trl)&&n<+c.trl?"lit":""} ${n>=a&&n<=b?"exp":""}" ${dis}><b>${n}</b><span>TRL</span></button>`}).join("")}</div>
+      <p class="muted" style="font-size:.8rem">Orange underline: TRL band the framework expects in this phase. ${ro?"":"Select a level to update it; the change is logged and also shows in Company details."}</p>
+    </div>
     <p class="muted" style="font-size:.84rem">Key question for this phase: <b style="color:var(--ink)">${esc(PHASES[c.phase].q)}</b> ${ro?"":"Select a phase to move the company once its gate is passed."}</p>
   </section>`;
 
@@ -713,7 +740,11 @@ function bindCompany(id,c){
     else if(field==="name")lt=`Renamed to ${v}`;
     write(id,p,lt);render.force=true;render()}};
   pf($('pName'),'name','',v=>v.trim()||c.name);pf($('pSec'),'sector');pf($('pSt'),'status');pf($('pLead'),'lead','',v=>v.trim());
-  pf($('pGate'),'nextGate');pf($('pRun'),'runway','',v=>v===""?"":+v);pf($('pSum'),'summary','',v=>v.trim());
+  pf($('pGate'),'nextGate');
+  $('pTrl').onchange=()=>setTrl($('pTrl').value);
+  document.querySelectorAll('[data-trl]').forEach(b=>b.onclick=()=>setTrl(b.dataset.trl));
+  function setTrl(v){v=v===""?"":+v;if(v===c.trl||(v===""&&!has(c.trl)))return;
+    write(id,{trl:v,trlAt:new Date().toISOString()},v===""?"TRL cleared":`TRL set to ${v}${has(c.trl)?` (was ${c.trl})`:""}: ${TRL_DEF[v-1]}`);render.force=true;render()}pf($('pRun'),'runway','',v=>v===""?"":+v);pf($('pSum'),'summary','',v=>v.trim());
   $('prof').onsubmit=e=>e.preventDefault();
   // phase
   document.querySelectorAll('[data-ph]').forEach(b=>b.onclick=()=>{const p=+b.dataset.ph;if(p===c.phase)return;

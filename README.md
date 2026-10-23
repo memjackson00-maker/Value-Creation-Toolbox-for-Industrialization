@@ -38,6 +38,7 @@ Live page: https://claude.ai/artifact/HXfnY8oU188JDzv2T9FWnR
 ### Company view (adapt per company)
 - Profile: name, sector, status (RAG), deal lead, next gate date, runway, current situation.
 - Phase track: click to move the company to another phase (logged).
+- TRL (1–9): set it from Company details or the TRL scale in the Phase section (both edit the same value, logged); checked against the TRL band the framework expects for the current phase and shown on the board and register.
 - Readiness: 8 dimensions scored 1–5 against the framework's minimum for the next gate, radar chart, gap list pointing to framework tools, trend over time.
 - Gate checklists: core criteria + the sector must-have + criteria the team adds for this company.
 - KPIs: starts from the sector KPI set; edit names, units, baseline, target and direction, log readings by date, see trend and on/off target.
