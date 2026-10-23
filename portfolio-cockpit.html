@@ -183,7 +183,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .ready{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:860px){.ready{grid-template-columns:1fr}}
 .sliders{display:flex;flex-direction:column;gap:12px}
-.sl{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px;gap:10px;align-items:center}
+.sl{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px 22px;gap:10px;align-items:center}
 .sl label{font-size:.9rem;font-weight:500}
 .sl label small{display:block;font-weight:400;color:var(--muted);font-size:.76rem}
 .sl input[type=range]{width:100%;accent-color:var(--accent)}
@@ -247,6 +247,15 @@ svg text{font-family:var(--f-mono)}
 .trl button:hover:not(:disabled){border-color:var(--accent)}
 .trl button:disabled{cursor:default}
 .trlnote{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:.88rem}
+.xbtn{all:unset;cursor:pointer;color:var(--muted);font-size:1rem;line-height:1;text-align:center;padding:2px 4px}
+.xbtn:hover{color:var(--bad)}
+.xbtn:focus-visible{outline:2px solid var(--signal)}
+.sl.cu label{color:var(--accent)}
+.removed{display:flex;flex-direction:column;gap:4px;padding:4px 16px 10px;font-size:.8rem;color:var(--muted)}
+.removed div{display:flex;gap:8px;align-items:baseline}
+.removed s{flex:1;min-width:0}
+.addim{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) auto auto;gap:6px;align-items:end;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:520px){.addim{grid-template-columns:1fr 1fr}}
 .confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.88rem}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:.88rem;z-index:20;max-width:calc(100% - 32px)}
 footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;max-width:85ch;display:flex;flex-direction:column;gap:6px}
@@ -341,24 +350,32 @@ function fmtNum(v){if(v===null||v===undefined||v==="")return"—";const n=+v;ret
 function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,3200)}
 
 // ---------- derived metrics ----------
+function dimsOf(c){
+  const ph=c.phase||0,off=c.dimOff||{},sc=c.scores||[],cs=c.cscores||{},out=[];
+  DIMS.forEach((d,i)=>{if(off[d.k])return;const[n,sub]=dimLabel(d,c.sector);out.push({key:d.k,dk:d.k,n,s:sub,t:TARGET[ph][i],v:sc[i]||1,bi:i})});
+  live(c.cdims).sort((a,b)=>(a[1].at||"").localeCompare(b[1].at||"")).forEach(([id,x])=>out.push({key:"c_"+id,id,n:x.n,s:x.s||"Added for this company",t:+((x.tg&&x.tg[ph])??x.t??3),v:+(cs[id]??1),custom:true}));
+  return out;
+}
 function readiness(c){
-  const t=TARGET[c.phase||0],v=c.scores||DIMS.map(()=>1);
-  const gaps=DIMS.map((d,i)=>({d,i,gap:t[i]-(v[i]||1)})).filter(x=>x.gap>0).sort((a,b)=>b.gap-a.gap);
+  const dims=dimsOf(c),n=dims.length;
+  const gaps=dims.map(d=>({d,gap:d.t-d.v})).filter(x=>x.gap>0).sort((a,b)=>b.gap-a.gap);
   const total=gaps.reduce((a,x)=>a+x.gap,0);
-  const avg=v.reduce((a,b)=>a+(b||1),0)/v.length;
-  const tAvg=t.reduce((a,b)=>a+b,0)/t.length;
+  const avg=n?dims.reduce((a,d)=>a+d.v,0)/n:0,tAvg=n?dims.reduce((a,d)=>a+d.t,0)/n:0;
   const gate=PHASES[c.phase||0].gate||"Scale";
-  const verdict=total===0?["v-go","Ready for "+gate]:(total<=3&&gaps.every(x=>x.gap<=1))?["v-cond","Conditional"]:["v-stop","Not ready for "+gate];
-  const met=DIMS.filter((d,i)=>(v[i]||1)>=t[i]).length;
-  return {t,v,gaps,total,avg,tAvg,verdict,met};
+  const verdict=!n?["v-cond","No dimensions"]:total===0?["v-go","Ready for "+gate]:(total<=3&&gaps.every(x=>x.gap<=1))?["v-cond","Conditional"]:["v-stop","Not ready for "+gate];
+  return {dims,n,gaps,total,avg,tAvg,verdict,met:n-gaps.length};
 }
 function gateItems(c,gi){
   const g=GATES[gi],s=SEC(c.sector);
-  const items=g.c.map((x,j)=>({t:x[0],k:x[1],key:g.g+"-"+j,type:"core"}));
-  items.push({t:s.gates[gi],k:"Must",key:g.g+"-sx-"+s.k,type:"sx"});
+  const off=c.gOff||{};
+  const base=g.c.map((x,j)=>({t:x[0],k:x[1],key:g.g+"-"+j,type:"core"}));
+  base.push({t:s.gates[gi],k:"Must",key:g.g+"-sx-"+s.k,type:"sx"});
+  const items=base.filter(x=>!off[x.key]);
   live(c.custom).filter(([,x])=>x.g===g.g).sort((a,b)=>(a[1].at||"").localeCompare(b[1].at||"")).forEach(([id,x])=>items.push({t:x.t,k:x.k,key:g.g+"-c-"+id,type:"cu",cid:id}));
   return items;
 }
+function gateRemoved(c,gi){const g=GATES[gi],s=SEC(c.sector),off=c.gOff||{};
+  return [...g.c.map((x,j)=>({t:x[0],k:x[1],key:g.g+"-"+j})),{t:s.gates[gi],k:"Must",key:g.g+"-sx-"+s.k}].filter(x=>off[x.key])}
 function gateProgress(c,gi){
   const items=gateItems(c,gi),tk=c.ticks||{};
   const musts=items.filter(x=>x.k==="Must");
@@ -534,12 +551,12 @@ function boardHtml(list){
 }
 function cardHtml(id,c){
   const r=readiness(c),s=SEC(c.sector),gi=c.phase<4?c.phase:null,gp=gi!==null?gateProgress(c,gi):null,sg=signals(c),st=STATUS[c.status]||STATUS.on,d=daysTo(c.nextGate);
-  const w=Math.min(100,r.avg/r.tAvg*100);
+  const w=r.tAvg?Math.min(100,r.avg/r.tAvg*100):0;
   return `<button class="card ${st[1]}-b" type="button" data-co="${esc(id)}">
     <span class="cn">${esc(c.name||"Untitled")}</span>
     <span class="row" style="gap:6px"><span class="tag">${esc(s.short)}</span><span class="pill ${st[1]}">${st[0]}</span></span>
     <span class="meter ${r.total?"gap":""}" title="Readiness ${r.avg.toFixed(1)} vs gate minimum ${r.tAvg.toFixed(1)}"><i style="width:${w}%"></i></span>
-    <span class="meta"><span class="${(()=>{const t=trlState(c);return t&&t[0]==="v-stop"?"bad":""})()}">${has(c.trl)?"TRL "+esc(c.trl):"TRL —"} · ${r.met}/8 dims at gate</span>${gp?`<span>${gp.mustDone}/${gp.mustTotal} musts ${PHASES[c.phase].gate}</span>`:"<span>Scaling</span>"}</span>
+    <span class="meta"><span class="${(()=>{const t=trlState(c);return t&&t[0]==="v-stop"?"bad":""})()}">${has(c.trl)?"TRL "+esc(c.trl):"TRL —"} · ${r.met}/${r.n} dims at gate</span>${gp?`<span>${gp.mustDone}/${gp.mustTotal} musts ${PHASES[c.phase].gate}</span>`:"<span>Scaling</span>"}</span>
     <span class="meta"><span class="${d!==null&&d<0?"bad":""}">${c.nextGate?(PHASES[c.phase].gate||"Review")+" "+fmtDate(c.nextGate):"No gate date"}</span>${sg.overdue?`<span class="bad">${sg.overdue} overdue</span>`:""}${sg.runwayLow?`<span class="bad">${esc(c.runway)} mo runway</span>`:""}</span>
   </button>`;
 }
@@ -635,20 +652,24 @@ function renderCompany(c){
   </section>`;
 
   const hist=Object.entries(c.rhist||{}).sort((a,b)=>a[0].localeCompare(b[0]));
-  const ready=`<section aria-labelledby="hReady"><div class="sechead"><div><span class="label">2 · Readiness</span><h2 id="hReady">Readiness against ${PHASES[c.phase].gate||"scale"}</h2><p class="lede">Score each dimension 1 to 5. The dashed line is the minimum for the next gate; gaps point to the framework tools that close them.</p></div>${c.scoredAt?`<span class="mono muted">Last scored ${rel(c.scoredAt)}</span>`:""}</div>
+  const ready=`<section aria-labelledby="hReady"><div class="sechead"><div><span class="label">2 · Readiness</span><h2 id="hReady">Readiness against ${PHASES[c.phase].gate||"scale"}</h2><p class="lede">Score each dimension 1 to 5. The dashed line is the minimum for the next gate; gaps point to the framework tools that close them. Remove dimensions that don't apply to this company with ×, or add your own below.</p></div>${c.scoredAt?`<span class="mono muted">Last scored ${rel(c.scoredAt)}</span>`:""}</div>
     <div class="ready">
-      <div class="panel"><div class="sliders">${DIMS.map((dm,i)=>{const[n,sub]=dimLabel(dm,c.sector);return `<div class="sl"><label for="d${i}">${esc(n)}<small>${esc(sub)}</small></label><input type="range" id="d${i}" min="1" max="5" step="1" value="${r.v[i]||1}" ${dis}><output id="o${i}" class="${(r.v[i]||1)<r.t[i]?"gap":""}">${r.v[i]||1} / ${r.t[i]}</output></div>`}).join("")}</div></div>
+      <div class="panel"><div class="sliders">${r.dims.length?r.dims.map((d,j)=>`<div class="sl ${d.custom?"cu":""}"><label for="d${j}">${esc(d.n)}<small>${esc(d.s)}${d.custom?" · own dimension":""}</small></label><input type="range" id="d${j}" min="1" max="5" step="1" value="${d.v}" ${dis}><output id="o${j}" class="${d.v<d.t?"gap":""}">${d.v} / ${d.t}</output>${ro?"<span></span>":`<button class="xbtn" type="button" data-rmdim="${esc(d.key)}" aria-label="Remove ${esc(d.n)}" title="Remove this dimension">×</button>`}</div>`).join(""):`<p class="muted">No readiness dimensions. Add one below or restore a framework dimension.</p>`}</div>
+        ${ro?"":`<form class="addim" id="dimForm" aria-label="Add readiness dimension"><div class="field"><label class="label" for="ndN">New dimension</label><input type="text" id="ndN" maxlength="60" required placeholder="e.g. Homologation"></div><div class="field"><label class="label" for="ndS">What it covers</label><input type="text" id="ndS" maxlength="100" placeholder="e.g. Type approval, test reports"></div><div class="field"><label class="label" for="ndT">Gate min.</label><select id="ndT" style="width:auto">${[1,2,3,4,5].map(v=>`<option ${v===3?"selected":""}>${v}</option>`).join("")}</select></div><button class="btn small" type="submit" style="margin-bottom:4px">Add</button></form>`}
+        ${(()=>{const off=DIMS.filter(d=>(c.dimOff||{})[d.k]);return off.length?`<div class="removed" style="padding:0"><span class="label">Removed framework dimensions</span>${off.map(d=>`<div><s>${esc(dimLabel(d,c.sector)[0])}</s>${ro?"":`<button class="link" type="button" data-rsdim="${d.k}">Restore</button>`}</div>`).join("")}</div>`:""})()}
+      </div>
       <div class="panel">
-        <svg id="radar" viewBox="-60 0 540 380" role="img" aria-label="Readiness radar chart" style="width:100%;max-width:520px;align-self:center">${radar(r.v,r.t,c.sector)}</svg>
+        <svg id="radar" viewBox="-60 0 540 380" role="img" aria-label="Readiness radar chart" style="width:100%;max-width:520px;align-self:center">${radar(r.dims)}</svg>
         <div class="score"><div><span class="label">Average</span><b>${r.avg.toFixed(1)}</b></div><div><span class="label">Gap points</span><b>${r.total}</b></div><div><span class="label">Trend</span>${hist.length>1?sparkHtml(hist.map(h=>h[1].avg),{min:1,max:5,w:140}):`<span class="mono muted" style="padding-top:6px">Builds as scores change</span>`}</div></div>
-        <div><span class="label">Gaps to close before the gate</span><ul class="gaps" style="margin-top:8px">${r.gaps.length?r.gaps.map(x=>`<li><b>${esc(dimLabel(x.d,c.sector)[0])}</b> needs +${x.gap}. <span>Use ${toolsFor(x.d.k,c.sector).map(q=>q.id+" "+esc(q.n)).join(", ")||"the board KPI cockpit to set an owner"}.</span></li>`).join(""):`<li style="border-color:var(--good)">All dimensions meet the gate minimum.</li>`}</ul></div>
+        <div><span class="label">Gaps to close before the gate</span><ul class="gaps" style="margin-top:8px">${r.gaps.length?r.gaps.map(x=>`<li><b>${esc(x.d.n)}</b> needs +${x.gap}. <span>${x.d.custom?"Add an owned action below to close it.":"Use "+(toolsFor(x.d.dk,c.sector).map(q=>q.id+" "+esc(q.n)).join(", ")||"the board KPI cockpit to set an owner")+"."}</span></li>`).join(""):r.n?`<li style="border-color:var(--good)">All dimensions meet the gate minimum.</li>`:`<li style="border-color:var(--line-strong)">Add a dimension to score readiness.</li>`}</ul></div>
       </div>
     </div></section>`;
 
-  const gates=`<section aria-labelledby="hGates"><div class="sechead"><div><span class="label">3 · Gates</span><h2 id="hGates">Gate criteria</h2><p class="lede">Core criteria, the ${esc(s.short)} must-have (orange) and criteria you add for this company (teal). Must-haves block the gate; should-haves can pass with a dated plan.</p></div></div>
+  const gates=`<section aria-labelledby="hGates"><div class="sechead"><div><span class="label">3 · Gates</span><h2 id="hGates">Gate criteria</h2><p class="lede">Core criteria, the ${esc(s.short)} must-have (orange) and criteria you add for this company (teal). Must-haves block the gate; should-haves can pass with a dated plan. Remove any criterion that doesn't apply with ×; removed framework criteria can be restored.</p></div></div>
     <div class="gates">${GATES.map((g,gi)=>{const gp=gateProgress(c,gi),tk=c.ticks||{},cls=gi===c.phase?"next":gi<c.phase?"passed":"";
       return `<div class="gatecard ${cls}"><header><div class="row"><span class="g">${g.g}</span><h3>${g.n}</h3>${gi===c.phase?`<span class="tag s">Next gate</span>`:gi<c.phase?`<span class="tag">Passed</span>`:""}</div><span class="prog">${gp.done}/${gp.total}${gp.mustDone===gp.mustTotal?" · musts met":` · ${gp.mustDone}/${gp.mustTotal} musts`}</span></header>
-      <ul>${gp.items.map(x=>`<li class="${x.type}"><label><input type="checkbox" data-tick="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}" ${tk[x.key]?"checked":""} ${dis}><span>${esc(x.t)}</span><span class="kind">${x.type==="sx"?esc(s.short.toUpperCase())+" · MUST":x.type==="cu"?"OWN · "+x.k.toUpperCase():x.k.toUpperCase()}</span></label>${x.type==="cu"&&!ro?`<button class="x" type="button" data-delc="${esc(x.cid)}" aria-label="Remove criterion">×</button>`:""}</li>`).join("")}</ul>
+      <ul>${gp.items.map(x=>`<li class="${x.type}"><label><input type="checkbox" data-tick="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}" ${tk[x.key]?"checked":""} ${dis}><span>${esc(x.t)}</span><span class="kind">${x.type==="sx"?esc(s.short.toUpperCase())+" · MUST":x.type==="cu"?"OWN · "+x.k.toUpperCase():x.k.toUpperCase()}</span></label>${ro?"":x.type==="cu"?`<button class="x" type="button" data-delc="${esc(x.cid)}" aria-label="Remove criterion" title="Remove criterion">×</button>`:`<button class="x" type="button" data-hidec="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}" aria-label="Remove criterion" title="Remove criterion">×</button>`}</li>`).join("")||`<li class="muted" style="font-size:.85rem">No criteria. Add one below.</li>`}</ul>
+      ${(()=>{const rm=gateRemoved(c,gi);return rm.length?`<div class="removed"><span class="label">Removed for this company</span>${rm.map(x=>`<div><s>${esc(x.t)}</s>${ro?"":`<button class="link" type="button" data-showc="${esc(x.key)}" data-txt="${esc(x.t)}" data-g="${g.g}">Restore</button>`}</div>`).join("")}</div>`:""})()}
       ${ro?"":`<form data-addc="${g.g}"><input type="text" id="nc-${g.g}" placeholder="Add a criterion for this company" maxlength="160" aria-label="New ${g.g} criterion"><select id="nk-${g.g}" aria-label="Criterion type"><option>Must</option><option>Should</option></select><button class="btn small" type="submit">Add</button></form>`}</div>`}).join("")}</div></section>`;
 
   const kp=live(c.kpis).sort((a,b)=>(a[1].ord??0)-(b[1].ord??0));
@@ -698,18 +719,20 @@ function toolsFor(dk,sk){
   return [...sx,...core].slice(0,3);
 }
 function shortName(n){return n.length>18?n.split(/ & | /)[0]:n}
-function radar(v,t,sk){
-  const cx=210,cy=190,R=128,n=DIMS.length;
+function radar(dims){
+  const cx=210,cy=190,R=128,n=dims.length;
+  if(n<3)return `<text x="210" y="190" text-anchor="middle" font-size="12" fill="var(--muted)">The radar needs at least 3 dimensions (${n} now).</text>`;
   const pt=(i,val)=>{const a=-Math.PI/2+i*2*Math.PI/n;const r=R*val/5;return[cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+  const poly=f=>dims.map((d,i)=>pt(i,f(d)).join(',')).join(' ');
   let s='';
-  for(let k=1;k<=5;k++)s+=`<polygon points="${DIMS.map((_,i)=>pt(i,k).join(',')).join(' ')}" fill="none" stroke="var(--line)" stroke-width="1"/>`;
-  DIMS.forEach((d,i)=>{const[x,y]=pt(i,5);s+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`;
+  for(let k=1;k<=5;k++)s+=`<polygon points="${poly(()=>k)}" fill="none" stroke="var(--line)" stroke-width="1"/>`;
+  dims.forEach((d,i)=>{const[x,y]=pt(i,5);s+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`;
     const[lx,ly]=pt(i,6.0);const anchor=Math.abs(lx-cx)<8?"middle":(lx>cx?"start":"end");
-    s+=`<text x="${lx}" y="${ly+4}" text-anchor="${anchor}" font-size="10.5" fill="${(v[i]||1)<t[i]?"var(--bad)":"var(--muted)"}">${esc(shortName(dimLabel(d,sk)[0]))}</text>`;});
+    s+=`<text x="${lx}" y="${ly+4}" text-anchor="${anchor}" font-size="10.5" fill="${d.v<d.t?"var(--bad)":"var(--muted)"}">${esc(shortName(d.n))}</text>`;});
   [1,3,5].forEach(k=>{const[x,y]=pt(0,k);s+=`<text x="${x+5}" y="${y+3}" font-size="9" fill="var(--muted)">${k}</text>`});
-  s+=`<polygon points="${DIMS.map((_,i)=>pt(i,v[i]||1).join(',')).join(' ')}" fill="var(--accent)" fill-opacity=".22" stroke="var(--accent)" stroke-width="2"/>`;
-  s+=`<polygon points="${DIMS.map((_,i)=>pt(i,t[i]).join(',')).join(' ')}" fill="none" stroke="var(--signal)" stroke-width="2" stroke-dasharray="5 4"/>`;
-  DIMS.forEach((_,i)=>{const[x,y]=pt(i,v[i]||1);s+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${(v[i]||1)<t[i]?"var(--bad)":"var(--accent)"}"/>`});
+  s+=`<polygon points="${poly(d=>d.v)}" fill="var(--accent)" fill-opacity=".22" stroke="var(--accent)" stroke-width="2"/>`;
+  s+=`<polygon points="${poly(d=>d.t)}" fill="none" stroke="var(--signal)" stroke-width="2" stroke-dasharray="5 4"/>`;
+  dims.forEach((d,i)=>{const[x,y]=pt(i,d.v);s+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${d.v<d.t?"var(--bad)":"var(--accent)"}"/>`});
   s+=`<g font-size="10" fill="var(--muted)"><rect x="12" y="354" width="14" height="4" fill="var(--accent)"/><text x="32" y="359">Current</text><line x1="96" y1="356" x2="112" y2="356" stroke="var(--signal)" stroke-width="2" stroke-dasharray="5 4"/><text x="118" y="359">Gate minimum</text></g>`;
   return s;
 }
@@ -750,17 +773,29 @@ function bindCompany(id,c){
   document.querySelectorAll('[data-ph]').forEach(b=>b.onclick=()=>{const p=+b.dataset.ph;if(p===c.phase)return;
     write(id,{phase:p},p>c.phase?`Passed ${PHASES[c.phase].gate||""} → moved to phase ${p+1} ${PHASES[p].n}`.replace("  "," "):`Moved back to phase ${p+1} ${PHASES[p].n}`);render.force=true;render()});
   // readiness sliders: live preview on input, save on release
-  DIMS.forEach((d,i)=>{const el=$('d'+i);
-    el.oninput=()=>{const v=+el.value;const t=TARGET[c.phase][i];const o=$('o'+i);o.textContent=`${v} / ${t}`;o.className=v<t?"gap":"";
-      const sc=[...(c.scores||DIMS.map(()=>1))];sc[i]=v;$('radar').innerHTML=radar(sc,TARGET[c.phase],c.sector)};
-    el.onchange=()=>{const sc=[...(c.scores||DIMS.map(()=>1))];const old=sc[i];sc[i]=+el.value;if(old===sc[i])return;
-      const r=readiness({...c,scores:sc});
-      write(id,{scores:sc,scoredAt:new Date().toISOString(),rhist:{[today()]:{avg:+r.avg.toFixed(2),gap:r.total,phase:c.phase}}},`${dimLabel(d,c.sector)[0]} scored ${sc[i]} (was ${old||1})`);
-      render.force=true;render()}});
+  const rd=readiness(c);
+  rd.dims.forEach((d,j)=>{const el=$('d'+j);
+    el.oninput=()=>{const v=+el.value,o=$('o'+j);o.textContent=`${v} / ${d.t}`;o.className=v<d.t?"gap":"";
+      $('radar').innerHTML=radar(rd.dims.map((x,k)=>k===j?{...x,v}:x))};
+    el.onchange=()=>{const v=+el.value,old=d.v;if(old===v)return;
+      let patch,next;
+      if(d.custom){patch={cscores:{[d.id]:v}};next={...c,cscores:{...(c.cscores||{}),[d.id]:v}}}
+      else{const sc=[...(c.scores||DIMS.map(()=>1))];sc[d.bi]=v;patch={scores:sc};next={...c,scores:sc}}
+      const r=readiness(next);
+      Object.assign(patch,{scoredAt:new Date().toISOString(),rhist:{[today()]:{avg:+r.avg.toFixed(2),gap:r.total,phase:c.phase}}});
+      write(id,patch,`${d.n} scored ${v} (was ${old})`);render.force=true;render()}});
+  document.querySelectorAll('[data-rmdim]').forEach(b=>b.onclick=()=>{const d=rd.dims.find(x=>x.key===b.dataset.rmdim);if(!d)return;
+    write(id,d.custom?{cdims:{[d.id]:{del:true}}}:{dimOff:{[d.dk]:true}},`Readiness dimension removed: ${d.n}`);render.force=true;render()});
+  document.querySelectorAll('[data-rsdim]').forEach(b=>b.onclick=()=>{const d=DIMS.find(x=>x.k===b.dataset.rsdim);
+    write(id,{dimOff:{[d.k]:false}},`Readiness dimension restored: ${dimLabel(d,c.sector)[0]}`);render.force=true;render()});
+  const dfm=$('dimForm');if(dfm)dfm.onsubmit=e=>{e.preventDefault();const n=$('ndN').value.trim();if(!n)return;const t=+$('ndT').value;
+    write(id,{cdims:{[uid()]:{n,s:$('ndS').value.trim(),t,tg:{[c.phase]:t},at:new Date().toISOString()}}},`Readiness dimension added: ${n} (gate minimum ${t})`);render.force=true;render()};
   // gate ticks
   document.querySelectorAll('[data-tick]').forEach(cb=>cb.onchange=()=>{write(id,{ticks:{[cb.dataset.tick]:cb.checked}},`${cb.dataset.g} ${cb.checked?"✓":"unticked"}: ${cb.dataset.txt}`);render.force=true;render()});
   document.querySelectorAll('[data-addc]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const g=f.dataset.addc,t=$('nc-'+g).value.trim();if(!t)return;
     write(id,{custom:{[uid()]:{g,t,k:$('nk-'+g).value,at:new Date().toISOString()}}},`${g} criterion added: ${t}`);render.force=true;render()});
+  document.querySelectorAll('[data-hidec]').forEach(b=>b.onclick=()=>{write(id,{gOff:{[b.dataset.hidec]:true}},`${b.dataset.g} criterion removed: ${b.dataset.txt}`);render.force=true;render()});
+  document.querySelectorAll('[data-showc]').forEach(b=>b.onclick=()=>{write(id,{gOff:{[b.dataset.showc]:false}},`${b.dataset.g} criterion restored: ${b.dataset.txt}`);render.force=true;render()});
   document.querySelectorAll('[data-delc]').forEach(b=>b.onclick=()=>{const x=c.custom[b.dataset.delc];write(id,{custom:{[b.dataset.delc]:{del:true}}},`${x.g} criterion removed: ${x.t}`);render.force=true;render()});
   // KPIs
   document.querySelectorAll('[data-kf]').forEach(el=>el.onchange=()=>{const f=el.dataset.kf,kid=el.dataset.kid,k=c.kpis[kid];let v=el.value;if(f==="base"||f==="target")v=v===""?"":+v;if(f==="n")v=v.trim()||k.n;
